@@ -40,6 +40,7 @@ def test_run_command_basic(mock_shutil_which, mock_subprocess_run):
         ['obsidian', 'help'],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True
     )
 
@@ -52,6 +53,7 @@ def test_run_command_vault_and_flags(mock_shutil_which, mock_subprocess_run):
         ['obsidian', 'vault=Test', 'create', 'name=Note', 'content=Hello', 'open', 'dummy_val=123'],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True
     )
 

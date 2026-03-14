@@ -1,7 +1,7 @@
 import subprocess
 import shutil
 from typing import Optional, List, Dict, Any, Literal
-from .exceptions import ObsidianCLINotFoundError, ObsidianCLICommandError
+from .exceptions import ObsidianCLINotFoundError, ObsidianCLICommandError, ObsidianCLIError
 
 class ObsidianClient:
     """A client for interacting with the Obsidian CLI."""
@@ -62,8 +62,12 @@ class ObsidianClient:
                 cmd_list,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 check=True
             )
+
+            if result.stdout is None:
+                raise ObsidianCLIError("Obsidian CLI returned no result")
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
             raise ObsidianCLICommandError(
