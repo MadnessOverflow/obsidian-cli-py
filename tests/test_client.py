@@ -46,7 +46,7 @@ def test_run_command_basic(mock_shutil_which, mock_subprocess_run):
 
 def test_run_command_vault_and_flags(mock_shutil_which, mock_subprocess_run):
     client = ObsidianClient(vault="Test")
-    client.create(name="Note", content="Hello", open=True, overwrite=False, dummy_val=123)
+    client._run_command("create", name="Note", content="Hello", open=True, overwrite=False, dummy_val=123)
 
     mock_subprocess_run.assert_called_once_with(
         ['obsidian', 'vault=Test', 'create', 'name=Note', 'content=Hello', 'open', 'dummy_val=123'],

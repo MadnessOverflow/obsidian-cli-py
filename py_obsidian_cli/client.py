@@ -1,7 +1,20 @@
 import subprocess
 import shutil
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from .exceptions import ObsidianCLINotFoundError, ObsidianCLICommandError
+
+# Common literal types for Obsidian CLI options
+PaneType = Literal["tab", "split", "window"]
+FormatStandard = Literal["json", "tsv", "csv"]
+BaseFormat = Literal["json", "csv", "tsv", "md", "paths"]
+DiffFilter = Literal["local", "sync"]
+FolderInfo = Literal["files", "folders", "size"]
+OutlineFormat = Literal["tree", "md", "json"]
+PluginType = Literal["core", "community"]
+PropertyType = Literal["text", "list", "number", "checkbox", "date", "datetime"]
+SearchFormat = Literal["text", "json"]
+VaultInfo = Literal["name", "path", "files", "folders", "size"]
+LogLevel = Literal["log", "warn", "error", "info", "debug"]
 
 class ObsidianClient:
     """A client for interacting with the Obsidian CLI."""
@@ -31,15 +44,9 @@ class ObsidianClient:
         Run an obsidian CLI command.
 
         Args:
-            command: The main obsidian command (e.g., 'create', 'search').
-            *args: Any additional positional arguments.
+            command: The main obsidian command.
+            *args: Additional positional arguments.
             **kwargs: Parameters and flags for the command.
-
-        Returns:
-            The standard output (stdout) of the command as a string.
-
-        Raises:
-            ObsidianCLICommandError: If the command returns a non-zero exit status.
         """
         cmd_list: List[str] = [self.executable]
 
@@ -50,6 +57,9 @@ class ObsidianClient:
         cmd_list.extend(args)
 
         for k, v in kwargs.items():
+            if k == "from_version":
+                k = "from"  # Map 'from_version' safely to 'from'
+            
             if v is True:
                 cmd_list.append(str(k))
             elif v is False:
@@ -75,514 +85,1236 @@ class ObsidianClient:
             ) from e
 
     # ==========================================
-    # File Management Commands
+    # Aliases
     # ==========================================
 
-    def create(self, name: Optional[str] = None, content: Optional[str] = None, open: bool = False, overwrite: bool = False, **kwargs: Any) -> str:
+    def aliases(self, file: Optional[str] = None, path: Optional[str] = None, 
+                total: bool = False, verbose: bool = False, active: bool = False) -> str:
         """
-        Create a new note.
+        List aliases in the vault.
+        Note: Defaults to the active file if file/path is omitted and 'active' is not True.
         
         Args:
-            name: The name or path of the new note.
-            content: The text content of the new note.
-            open: If True, opens the note in Obsidian after creation.
-            overwrite: If True, overwrites an existing note with the same name.
-            **kwargs: Extra parameters/flags mapped to the CLI.
+            file: File name.
+            path: File path.
+            total: Return alias count.
+            verbose: Include file paths.
+            active: Show aliases for active file.
         """
-        return self._run_command("create", name=name, content=content, open=open, overwrite=overwrite, **kwargs)
+        return self._run_command("aliases", file=file, path=path, total=total, verbose=verbose, active=active)
 
-    def read(self, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
+    # ==========================================
+    # Append
+    # ==========================================
+
+    def append(self, content: str, file: Optional[str] = None, path: Optional[str] = None, inline: bool = False) -> str:
         """
-        Read the content of a note.
+        Append content to a file. Defaults to the active file if file/path is omitted.
         
         Args:
-            file: The name of the file to read (resolved via Obsidian's wikilink resolution).
-            path: The exact path from the vault root to read.
+            content: Content to append (required).
+            file: File name.
+            path: File path.
+            inline: Append without newline.
         """
-        return self._run_command("read", file=file, path=path, **kwargs)
-
-    def append(self, file: Optional[str] = None, path: Optional[str] = None, content: Optional[str] = None, **kwargs: Any) -> str:
-        """Append content to a note."""
-        return self._run_command("append", file=file, path=path, content=content, **kwargs)
-
-    def prepend(self, file: Optional[str] = None, path: Optional[str] = None, content: Optional[str] = None, **kwargs: Any) -> str:
-        """Prepend content to a note."""
-        return self._run_command("prepend", file=file, path=path, content=content, **kwargs)
-
-    def move(self, source: str, destination: str, **kwargs: Any) -> str:
-        """Move or rename a file (if arguments are purely positional to the CLI)."""
-        # Note: Obsidian CLI might use parameters for this, but if positional, we use `*args`
-        # Adjusting assuming parameter style based on previous docs if needed, but going with 
-        # kwargs to allow overriding if the CLI args vary.
-        return self._run_command("move", source, destination, **kwargs)
-
-    def rename(self, source: str, destination: str, **kwargs: Any) -> str:
-        """Rename a file."""
-        return self._run_command("rename", source, destination, **kwargs)
-
-    def delete(self, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
-        """Delete a file."""
-        return self._run_command("delete", file=file, path=path, **kwargs)
-
-    def open(self, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
-        """Open a file in Obsidian."""
-        return self._run_command("open", file=file, path=path, **kwargs)
+        return self._run_command("append", content=content, file=file, path=path, inline=inline)
 
     # ==========================================
-    # Search Commands
+    # Backlinks
     # ==========================================
 
-    def search(self, query: str, **kwargs: Any) -> str:
+    def backlinks(self, file: Optional[str] = None, path: Optional[str] = None, 
+                  counts: bool = False, total: bool = False, format: Optional[FormatStandard] = None) -> str:
         """
-        Search the vault.
+        List backlinks to a file. Defaults to the active file if omitted.
         
         Args:
-            query: The search query.
+            file: Target file name.
+            path: Target file path.
+            counts: Include link counts.
+            total: Return backlink count.
+            format: Output format (default: tsv).
         """
-        return self._run_command("search", query=query, **kwargs)
-
-    # ==========================================
-    # Daily Notes Commands
-    # ==========================================
-
-    def daily(self, **kwargs: Any) -> str:
-        """Open today's daily note, creating it if it doesn't exist."""
-        return self._run_command("daily", **kwargs)
-
-    def daily_read(self, **kwargs: Any) -> str:
-        """Read today's daily note."""
-        return self._run_command("daily:read", **kwargs)
-
-    def daily_append(self, content: str, **kwargs: Any) -> str:
-        """Append content to today's daily note."""
-        return self._run_command("daily:append", content=content, **kwargs)
-
-    def daily_prepend(self, content: str, **kwargs: Any) -> str:
-        """Prepend content to today's daily note."""
-        return self._run_command("daily:prepend", content=content, **kwargs)
-
-    # ==========================================
-    # Properties Commands
-    # ==========================================
-
-    def properties(self, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
-        """List properties of a note."""
-        return self._run_command("properties", file=file, path=path, **kwargs)
-
-    def property_set(self, key: str, value: str, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
-        """Set a property on a note."""
-        # Typically set like: obsidian property:set key=myKey value=myValue file=Note
-        return self._run_command("property:set", key=key, value=value, file=file, path=path, **kwargs)
-
-    def property_read(self, key: str, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
-        """Read a property from a note."""
-        return self._run_command("property:read", key=key, file=file, path=path, **kwargs)
-        
-    def property_remove(self, key: str, file: Optional[str] = None, path: Optional[str] = None, **kwargs: Any) -> str:
-        """Remove a property from a note."""
-        return self._run_command("property:remove", key=key, file=file, path=path, **kwargs)
-
-    # ==========================================
-    # Bookmarks
-    # ==========================================
-
-    def bookmarks(self, **kwargs: Any) -> str:
-        """List all bookmarks."""
-        return self._run_command("bookmarks", **kwargs)
-
-    def bookmark(self, **kwargs: Any) -> str:
-        """Manage a bookmark (see CLI help for specific usage)."""
-        return self._run_command("bookmark", **kwargs)
-
-    # ==========================================
-    # Tags
-    # ==========================================
-
-    def tags(self, **kwargs: Any) -> str:
-        """List all tags."""
-        return self._run_command("tags", **kwargs)
-
-    def tag(self, name: str, **kwargs: Any) -> str:
-        """Interact with a specific tag."""
-        return self._run_command("tag", name=name, **kwargs)
-
-    # ==========================================
-    # Workspaces
-    # ==========================================
-
-    def workspace_save(self, name: str, **kwargs: Any) -> str:
-        """Save the current workspace."""
-        return self._run_command("workspace:save", name=name, **kwargs)
-
-    def workspace_load(self, name: str, **kwargs: Any) -> str:
-        """Load a saved workspace."""
-        return self._run_command("workspace:load", name=name, **kwargs)
-
-    def tabs(self, **kwargs: Any) -> str:
-        """List open tabs."""
-        return self._run_command("tabs", **kwargs)
-
-    # ==========================================
-    # System & Other
-    # ==========================================
-
-    def help(self, **kwargs: Any) -> str:
-        """Show CLI help."""
-        return self._run_command("help", **kwargs)
-        
-    def version(self, **kwargs: Any) -> str:
-        """Show CLI version."""
-        return self._run_command("version", **kwargs)
-
-    def commands(self, **kwargs: Any) -> str:
-        """Show all available Obsidian commands."""
-        return self._run_command("commands", **kwargs)
-
-    def command(self, id: str, **kwargs: Any) -> str:
-        """Run a specific Obsidian command by ID."""
-        return self._run_command("command", id=id, **kwargs)
-
-    # ==========================================
-    # Aliases, Links, and Outline
-    # ==========================================
-
-    def aliases(self, **kwargs: Any) -> str:
-        """List aliases in the vault."""
-        return self._run_command("aliases", **kwargs)
-
-    def backlinks(self, **kwargs: Any) -> str:
-        """List backlinks to a file."""
-        return self._run_command("backlinks", **kwargs)
-
-    def deadends(self, **kwargs: Any) -> str:
-        """List files with no outgoing links."""
-        return self._run_command("deadends", **kwargs)
-
-    def links(self, **kwargs: Any) -> str:
-        """List outgoing links from a file."""
-        return self._run_command("links", **kwargs)
-
-    def orphans(self, **kwargs: Any) -> str:
-        """List files with no incoming links."""
-        return self._run_command("orphans", **kwargs)
-
-    def outline(self, **kwargs: Any) -> str:
-        """Show headings for the current file."""
-        return self._run_command("outline", **kwargs)
-
-    def unresolved(self, **kwargs: Any) -> str:
-        """List unresolved links in vault."""
-        return self._run_command("unresolved", **kwargs)
+        return self._run_command("backlinks", file=file, path=path, counts=counts, total=total, format=format)
 
     # ==========================================
     # Bases
     # ==========================================
 
-    def base_create(self, **kwargs: Any) -> str:
-        """Create a new item in a base."""
-        return self._run_command("base:create", **kwargs)
+    def base_create(self, file: Optional[str] = None, path: Optional[str] = None, view: Optional[str] = None,
+                    name: Optional[str] = None, content: Optional[str] = None, 
+                    open: bool = False, newtab: bool = False) -> str:
+        """
+        Create a new item in a base. Defaults to the active file if file/path omitted.
+        
+        Args:
+            file: Base file name.
+            path: Base file path.
+            view: View name.
+            name: New file name.
+            content: Initial content.
+            open: Open file after creating.
+            newtab: Open in new tab.
+        """
+        return self._run_command("base:create", file=file, path=path, view=view, name=name, content=content, open=open, newtab=newtab)
 
-    def base_query(self, **kwargs: Any) -> str:
-        """Query a base and return results."""
-        return self._run_command("base:query", **kwargs)
+    def base_query(self, file: Optional[str] = None, path: Optional[str] = None, view: Optional[str] = None,
+                   format: Optional[BaseFormat] = None) -> str:
+        """
+        Query a base and return results. Defaults to the active file if omitted.
+        
+        Args:
+            file: Base file name.
+            path: Base file path.
+            view: View name to query.
+            format: Output format (default: json).
+        """
+        return self._run_command("base:query", file=file, path=path, view=view, format=format)
 
-    def base_views(self, **kwargs: Any) -> str:
+    def base_views(self) -> str:
         """List views in the current base file."""
-        return self._run_command("base:views", **kwargs)
+        return self._run_command("base:views")
 
-    def bases(self, **kwargs: Any) -> str:
+    def bases(self) -> str:
         """List all base files in vault."""
-        return self._run_command("bases", **kwargs)
+        return self._run_command("bases")
 
     # ==========================================
-    # Daily Notes and Random Notes
+    # Bookmarks
     # ==========================================
 
-    def daily_path(self, **kwargs: Any) -> str:
+    def bookmark(self, file: Optional[str] = None, subpath: Optional[str] = None, folder: Optional[str] = None,
+                 search: Optional[str] = None, url: Optional[str] = None, title: Optional[str] = None) -> str:
+        """
+        Add a bookmark.
+        
+        Args:
+            file: File to bookmark.
+            subpath: Subpath (heading or block) within file.
+            folder: Folder to bookmark.
+            search: Search query to bookmark.
+            url: URL to bookmark.
+            title: Bookmark title.
+        """
+        return self._run_command("bookmark", file=file, subpath=subpath, folder=folder, search=search, url=url, title=title)
+
+    def bookmarks(self, total: bool = False, verbose: bool = False, format: Optional[FormatStandard] = None) -> str:
+        """
+        List bookmarks.
+        
+        Args:
+            total: Return bookmark count.
+            verbose: Include bookmark types.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("bookmarks", total=total, verbose=verbose, format=format)
+
+    # ==========================================
+    # Command & Commands
+    # ==========================================
+
+    def command(self, id: str) -> str:
+        """
+        Execute an Obsidian command.
+        
+        Args:
+            id: Command ID to execute (required).
+        """
+        return self._run_command("command", id=id)
+
+    def commands(self, filter: Optional[str] = None) -> str:
+        """
+        List available command IDs.
+        
+        Args:
+            filter: Filter by ID prefix.
+        """
+        return self._run_command("commands", filter=filter)
+
+    # ==========================================
+    # Create
+    # ==========================================
+
+    def create(self, name: Optional[str] = None, path: Optional[str] = None, content: Optional[str] = None,
+               template: Optional[str] = None, overwrite: bool = False, open: bool = False, newtab: bool = False) -> str:
+        """
+        Create a new file.
+        
+        Args:
+            name: File name.
+            path: File path.
+            content: Initial content.
+            template: Template to use.
+            overwrite: Overwrite if file exists.
+            open: Open file after creating.
+            newtab: Open in new tab.
+        """
+        return self._run_command("create", name=name, path=path, content=content, template=template, 
+                                 overwrite=overwrite, open=open, newtab=newtab)
+
+    # ==========================================
+    # Daily Notes
+    # ==========================================
+
+    def daily(self, paneType: Optional[PaneType] = None) -> str:
+        """
+        Open daily note.
+        
+        Args:
+            paneType: Pane type to open in.
+        """
+        return self._run_command("daily", paneType=paneType)
+
+    def daily_append(self, content: str, inline: bool = False, open: bool = False, paneType: Optional[PaneType] = None) -> str:
+        """
+        Append content to daily note.
+        
+        Args:
+            content: Content to append (required).
+            inline: Append without newline.
+            open: Open file after adding.
+            paneType: Pane type to open in.
+        """
+        return self._run_command("daily:append", content=content, inline=inline, open=open, paneType=paneType)
+
+    def daily_path(self) -> str:
         """Get daily note path."""
-        return self._run_command("daily:path", **kwargs)
+        return self._run_command("daily:path")
 
-    def random(self, **kwargs: Any) -> str:
-        """Open a random note."""
-        return self._run_command("random", **kwargs)
+    def daily_prepend(self, content: str, inline: bool = False, open: bool = False, paneType: Optional[PaneType] = None) -> str:
+        """
+        Prepend content to daily note.
+        
+        Args:
+            content: Content to prepend (required).
+            inline: Prepend without newline.
+            open: Open file after adding.
+            paneType: Pane type to open in.
+        """
+        return self._run_command("daily:prepend", content=content, inline=inline, open=open, paneType=paneType)
 
-    def random_read(self, **kwargs: Any) -> str:
-        """Read a random note."""
-        return self._run_command("random:read", **kwargs)
+    def daily_read(self) -> str:
+        """Read daily note contents."""
+        return self._run_command("daily:read")
 
     # ==========================================
-    # Files, Folders, and History
+    # Deadends
     # ==========================================
 
-    def file_info(self, **kwargs: Any) -> str:
-        """Show file info."""
-        return self._run_command("file", **kwargs)
+    def deadends(self, total: bool = False, all: bool = False) -> str:
+        """
+        List files with no outgoing links.
+        
+        Args:
+            total: Return dead-end count.
+            all: Include non-markdown files.
+        """
+        return self._run_command("deadends", total=total, all=all)
 
-    def files(self, **kwargs: Any) -> str:
-        """List files in the vault."""
-        return self._run_command("files", **kwargs)
+    # ==========================================
+    # Delete
+    # ==========================================
 
-    def folder(self, **kwargs: Any) -> str:
-        """Show folder info."""
-        return self._run_command("folder", **kwargs)
+    def delete(self, file: Optional[str] = None, path: Optional[str] = None, permanent: bool = False) -> str:
+        """
+        Delete a file. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            permanent: Skip trash, delete permanently.
+        """
+        return self._run_command("delete", file=file, path=path, permanent=permanent)
 
-    def folders(self, **kwargs: Any) -> str:
-        """List folders in the vault."""
-        return self._run_command("folders", **kwargs)
+    # ==========================================
+    # Diff
+    # ==========================================
 
-    def history(self, **kwargs: Any) -> str:
-        """List file history versions."""
-        return self._run_command("history", **kwargs)
+    def diff(self, file: Optional[str] = None, path: Optional[str] = None, 
+             from_version: Optional[int] = None, to: Optional[int] = None, filter: Optional[DiffFilter] = None) -> str:
+        """
+        List or diff local/sync versions. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            from_version: Version number to diff from.
+            to: Version number to diff to.
+            filter: Filter by version source.
+        """
+        return self._run_command("diff", file=file, path=path, from_version=from_version, to=to, filter=filter)
 
-    def history_list(self, **kwargs: Any) -> str:
+    # ==========================================
+    # File & Files
+    # ==========================================
+
+    def file_info(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Show file info. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("file", file=file, path=path)
+
+    def files(self, folder: Optional[str] = None, ext: Optional[str] = None, total: bool = False) -> str:
+        """
+        List files in the vault.
+        
+        Args:
+            folder: Filter by folder.
+            ext: Filter by extension.
+            total: Return file count.
+        """
+        return self._run_command("files", folder=folder, ext=ext, total=total)
+
+    # ==========================================
+    # Folder & Folders
+    # ==========================================
+
+    def folder(self, path: str, info: Optional[FolderInfo] = None) -> str:
+        """
+        Show folder info.
+        
+        Args:
+            path: Folder path (required).
+            info: Return specific info only.
+        """
+        return self._run_command("folder", path=path, info=info)
+
+    def folders(self, folder: Optional[str] = None, total: bool = False) -> str:
+        """
+        List folders in the vault.
+        
+        Args:
+            folder: Filter by parent folder.
+            total: Return folder count.
+        """
+        return self._run_command("folders", folder=folder, total=total)
+
+    # ==========================================
+    # Help
+    # ==========================================
+
+    def help(self, command: Optional[str] = None) -> str:
+        """
+        Show list of all available commands.
+        
+        Args:
+            command: Show help for a specific command.
+        """
+        if command:
+            return self._run_command("help", command)
+        return self._run_command("help")
+
+    # ==========================================
+    # History
+    # ==========================================
+
+    def history(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        List file history versions. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("history", file=file, path=path)
+
+    def history_list(self) -> str:
         """List files with history."""
-        return self._run_command("history:list", **kwargs)
+        return self._run_command("history:list")
 
-    def history_open(self, **kwargs: Any) -> str:
-        """Open file recovery."""
-        return self._run_command("history:open", **kwargs)
+    def history_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Open file recovery. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("history:open", file=file, path=path)
 
-    def history_read(self, **kwargs: Any) -> str:
-        """Read a file history version."""
-        return self._run_command("history:read", **kwargs)
+    def history_read(self, file: Optional[str] = None, path: Optional[str] = None, version: int = 1) -> str:
+        """
+        Read a file history version. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            version: Version number (default: 1).
+        """
+        return self._run_command("history:read", file=file, path=path, version=version)
 
-    def history_restore(self, **kwargs: Any) -> str:
-        """Restore a file history version."""
-        return self._run_command("history:restore", **kwargs)
-
-    def diff(self, **kwargs: Any) -> str:
-        """List or diff local/sync versions."""
-        return self._run_command("diff", **kwargs)
-
-    def recents(self, **kwargs: Any) -> str:
-        """List recently opened files."""
-        return self._run_command("recents", **kwargs)
-
-    # ==========================================
-    # Plugins, Themes, and Snippets
-    # ==========================================
-
-    def plugin(self, **kwargs: Any) -> str:
-        """Get plugin info."""
-        return self._run_command("plugin", **kwargs)
-
-    def plugin_disable(self, **kwargs: Any) -> str:
-        """Disable a plugin."""
-        return self._run_command("plugin:disable", **kwargs)
-
-    def plugin_enable(self, **kwargs: Any) -> str:
-        """Enable a plugin."""
-        return self._run_command("plugin:enable", **kwargs)
-
-    def plugin_install(self, **kwargs: Any) -> str:
-        """Install a community plugin."""
-        return self._run_command("plugin:install", **kwargs)
-
-    def plugin_reload(self, **kwargs: Any) -> str:
-        """Reload a plugin."""
-        return self._run_command("plugin:reload", **kwargs)
-
-    def plugin_uninstall(self, **kwargs: Any) -> str:
-        """Uninstall a community plugin."""
-        return self._run_command("plugin:uninstall", **kwargs)
-
-    def plugins(self, **kwargs: Any) -> str:
-        """List installed plugins."""
-        return self._run_command("plugins", **kwargs)
-
-    def plugins_enabled(self, **kwargs: Any) -> str:
-        """List enabled plugins."""
-        return self._run_command("plugins:enabled", **kwargs)
-
-    def plugins_restrict(self, **kwargs: Any) -> str:
-        """Toggle or check restricted mode."""
-        return self._run_command("plugins:restrict", **kwargs)
-
-    def theme(self, **kwargs: Any) -> str:
-        """Show active theme or get info."""
-        return self._run_command("theme", **kwargs)
-
-    def theme_install(self, **kwargs: Any) -> str:
-        """Install a community theme."""
-        return self._run_command("theme:install", **kwargs)
-
-    def theme_set(self, **kwargs: Any) -> str:
-        """Set active theme."""
-        return self._run_command("theme:set", **kwargs)
-
-    def theme_uninstall(self, **kwargs: Any) -> str:
-        """Uninstall a theme."""
-        return self._run_command("theme:uninstall", **kwargs)
-
-    def themes(self, **kwargs: Any) -> str:
-        """List installed themes."""
-        return self._run_command("themes", **kwargs)
-
-    def snippet_disable(self, **kwargs: Any) -> str:
-        """Disable a CSS snippet."""
-        return self._run_command("snippet:disable", **kwargs)
-
-    def snippet_enable(self, **kwargs: Any) -> str:
-        """Enable a CSS snippet."""
-        return self._run_command("snippet:enable", **kwargs)
-
-    def snippets(self, **kwargs: Any) -> str:
-        """List installed CSS snippets."""
-        return self._run_command("snippets", **kwargs)
-
-    def snippets_enabled(self, **kwargs: Any) -> str:
-        """List enabled CSS snippets."""
-        return self._run_command("snippets:enabled", **kwargs)
+    def history_restore(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Restore a file history version. Defaults to the active file if omitted.
+        
+        Args:
+            version: Version number (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("history:restore", file=file, path=path, version=version)
 
     # ==========================================
-    # Publish and Unique Notes
+    # Hotkey & Hotkeys
     # ==========================================
 
-    def publish_site(self, **kwargs: Any) -> str:
+    def hotkey(self, id: str, verbose: bool = False) -> str:
+        """
+        Get hotkey for a command.
+        
+        Args:
+            id: Command ID (required).
+            verbose: Show if custom or default.
+        """
+        return self._run_command("hotkey", id=id, verbose=verbose)
+
+    def hotkeys(self, total: bool = False, verbose: bool = False, format: Optional[FormatStandard] = None, all: bool = False) -> str:
+        """
+        List hotkeys.
+        
+        Args:
+            total: Return hotkey count.
+            verbose: Show if hotkey is custom.
+            format: Output format (default: tsv).
+            all: Include commands without hotkeys.
+        """
+        return self._run_command("hotkeys", total=total, verbose=verbose, format=format, all=all)
+
+    # ==========================================
+    # Links
+    # ==========================================
+
+    def links(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False) -> str:
+        """
+        List outgoing links from a file. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            total: Return link count.
+        """
+        return self._run_command("links", file=file, path=path, total=total)
+
+    # ==========================================
+    # Move
+    # ==========================================
+
+    def move(self, to: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Move or rename a file. Defaults to the active file if omitted.
+        
+        Args:
+            to: Destination folder or path (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("move", file=file, path=path, to=to)
+
+    # ==========================================
+    # Open
+    # ==========================================
+
+    def open(self, file: Optional[str] = None, path: Optional[str] = None, newtab: bool = False) -> str:
+        """
+        Open a file. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            newtab: Open in new tab.
+        """
+        return self._run_command("open", file=file, path=path, newtab=newtab)
+
+    # ==========================================
+    # Orphans
+    # ==========================================
+
+    def orphans(self, total: bool = False, all: bool = False) -> str:
+        """
+        List files with no incoming links.
+        
+        Args:
+            total: Return orphan count.
+            all: Include non-markdown files.
+        """
+        return self._run_command("orphans", total=total, all=all)
+
+    # ==========================================
+    # Outline
+    # ==========================================
+
+    def outline(self, file: Optional[str] = None, path: Optional[str] = None, 
+                format: Optional[OutlineFormat] = None, total: bool = False) -> str:
+        """
+        Show headings for the current file. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            format: Output format (default: tree).
+            total: Return heading count.
+        """
+        return self._run_command("outline", file=file, path=path, format=format, total=total)
+
+    # ==========================================
+    # Plugins
+    # ==========================================
+
+    def plugin(self, id: str) -> str:
+        """
+        Get plugin info.
+        
+        Args:
+            id: Plugin ID (required).
+        """
+        return self._run_command("plugin", id=id)
+
+    def plugin_disable(self, id: str, filter: Optional[PluginType] = None) -> str:
+        """
+        Disable a plugin.
+        
+        Args:
+            id: Plugin ID (required).
+            filter: Plugin type.
+        """
+        return self._run_command("plugin:disable", id=id, filter=filter)
+
+    def plugin_enable(self, id: str, filter: Optional[PluginType] = None) -> str:
+        """
+        Enable a plugin.
+        
+        Args:
+            id: Plugin ID (required).
+            filter: Plugin type.
+        """
+        return self._run_command("plugin:enable", id=id, filter=filter)
+
+    def plugin_install(self, id: str, enable: bool = False) -> str:
+        """
+        Install a community plugin.
+        
+        Args:
+            id: Plugin ID (required).
+            enable: Enable after install.
+        """
+        return self._run_command("plugin:install", id=id, enable=enable)
+
+    def plugin_reload(self, id: str) -> str:
+        """
+        Reload a plugin (for developers).
+        
+        Args:
+            id: Plugin ID (required).
+        """
+        return self._run_command("plugin:reload", id=id)
+
+    def plugin_uninstall(self, id: str) -> str:
+        """
+        Uninstall a community plugin.
+        
+        Args:
+            id: Plugin ID (required).
+        """
+        return self._run_command("plugin:uninstall", id=id)
+
+    def plugins(self, filter: Optional[PluginType] = None, versions: bool = False, format: Optional[FormatStandard] = None) -> str:
+        """
+        List installed plugins.
+        
+        Args:
+            filter: Filter by plugin type.
+            versions: Include version numbers.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("plugins", filter=filter, versions=versions, format=format)
+
+    def plugins_enabled(self, filter: Optional[PluginType] = None, versions: bool = False, format: Optional[FormatStandard] = None) -> str:
+        """
+        List enabled plugins.
+        
+        Args:
+            filter: Filter by plugin type.
+            versions: Include version numbers.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("plugins:enabled", filter=filter, versions=versions, format=format)
+
+    def plugins_restrict(self, on: bool = False, off: bool = False) -> str:
+        """
+        Toggle or check restricted mode.
+        
+        Args:
+            on: Enable restricted mode.
+            off: Disable restricted mode.
+        """
+        return self._run_command("plugins:restrict", on=on, off=off)
+
+    # ==========================================
+    # Prepend
+    # ==========================================
+
+    def prepend(self, content: str, file: Optional[str] = None, path: Optional[str] = None, inline: bool = False) -> str:
+        """
+        Prepend content to a file. Defaults to the active file if omitted.
+        
+        Args:
+            content: Content to prepend (required).
+            file: File name.
+            path: File path.
+            inline: Prepend without newline.
+        """
+        return self._run_command("prepend", content=content, file=file, path=path, inline=inline)
+
+    # ==========================================
+    # Properties
+    # ==========================================
+
+    def properties(self, file: Optional[str] = None, path: Optional[str] = None, name: Optional[str] = None,
+                   total: bool = False, sort: Optional[str] = None, counts: bool = False, 
+                   format: Optional[Literal["yaml", "json", "tsv"]] = None, active: bool = False) -> str:
+        """
+        List properties in the vault. Defaults to the active file if omitted.
+        
+        Args:
+            file: Show properties for file.
+            path: Show properties for path.
+            name: Get specific property count.
+            total: Return property count.
+            sort: Sort by count (default: name).
+            counts: Include occurrence counts.
+            format: Output format (default: yaml).
+            active: Show properties for active file.
+        """
+        return self._run_command("properties", file=file, path=path, name=name, total=total, sort=sort, counts=counts, format=format, active=active)
+
+    def property_read(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Read a property value from a file. Defaults to the active file if omitted.
+        
+        Args:
+            name: Property name (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("property:read", name=name, file=file, path=path)
+
+    def property_remove(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Remove a property from a file. Defaults to the active file if omitted.
+        
+        Args:
+            name: Property name (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("property:remove", name=name, file=file, path=path)
+
+    def property_set(self, name: str, value: str, type: Optional[PropertyType] = None, 
+                     file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Set a property on a file. Defaults to the active file if omitted.
+        
+        Args:
+            name: Property name (required).
+            value: Property value (required).
+            type: Property type.
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("property:set", name=name, value=value, type=type, file=file, path=path)
+
+    # ==========================================
+    # Publish
+    # ==========================================
+
+    def publish_site(self) -> str:
         """Show publish site info (slug, URL)."""
-        return self._run_command("publish:site", **kwargs)
+        return self._run_command("publish:site")
 
-    def publish_list(self, **kwargs: Any) -> str:
-        """List published files."""
-        return self._run_command("publish:list", **kwargs)
+    def publish_list(self, total: bool = False) -> str:
+        """
+        List published files.
+        
+        Args:
+            total: Return published file count.
+        """
+        return self._run_command("publish:list", total=total)
 
-    def publish_status(self, **kwargs: Any) -> str:
-        """List publish changes."""
-        return self._run_command("publish:status", **kwargs)
+    def publish_status(self, total: bool = False, new: bool = False, changed: bool = False, deleted: bool = False) -> str:
+        """
+        List publish changes.
+        
+        Args:
+            total: Return change count.
+            new: Show new files only.
+            changed: Show changed files only.
+            deleted: Show deleted files only.
+        """
+        return self._run_command("publish:status", total=total, new=new, changed=changed, deleted=deleted)
 
-    def publish_add(self, **kwargs: Any) -> str:
-        """Publish a file or all changed files."""
-        return self._run_command("publish:add", **kwargs)
+    def publish_add(self, file: Optional[str] = None, path: Optional[str] = None, changed: bool = False) -> str:
+        """
+        Publish a file or all changed files. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            changed: Publish all changed files.
+        """
+        return self._run_command("publish:add", file=file, path=path, changed=changed)
 
-    def publish_remove(self, **kwargs: Any) -> str:
-        """Unpublish a file."""
-        return self._run_command("publish:remove", **kwargs)
+    def publish_remove(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Unpublish a file. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("publish:remove", file=file, path=path)
 
-    def publish_open(self, **kwargs: Any) -> str:
-        """Open file on published site."""
-        return self._run_command("publish:open", **kwargs)
-
-    def unique(self, **kwargs: Any) -> str:
-        """Create unique note."""
-        return self._run_command("unique", **kwargs)
+    def publish_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Open file on published site. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("publish:open", file=file, path=path)
 
     # ==========================================
-    # Tasks and Templates
+    # Random Notes
     # ==========================================
 
-    def task(self, **kwargs: Any) -> str:
-        """Show or update a task."""
-        return self._run_command("task", **kwargs)
+    def random(self, folder: Optional[str] = None, newtab: bool = False) -> str:
+        """
+        Open a random note.
+        
+        Args:
+            folder: Limit to folder.
+            newtab: Open in new tab.
+        """
+        return self._run_command("random", folder=folder, newtab=newtab)
 
-    def tasks(self, **kwargs: Any) -> str:
-        """List tasks in the vault."""
-        return self._run_command("tasks", **kwargs)
-
-    def template_insert(self, **kwargs: Any) -> str:
-        """Insert template into active file."""
-        return self._run_command("template:insert", **kwargs)
-
-    def template_read(self, **kwargs: Any) -> str:
-        """Read template content."""
-        return self._run_command("template:read", **kwargs)
-
-    def templates(self, **kwargs: Any) -> str:
-        """List templates."""
-        return self._run_command("templates", **kwargs)
+    def random_read(self, folder: Optional[str] = None) -> str:
+        """
+        Read a random note.
+        
+        Args:
+            folder: Limit to folder.
+        """
+        return self._run_command("random:read", folder=folder)
 
     # ==========================================
-    # Search Extensions
+    # Read
     # ==========================================
 
-    def search_context(self, **kwargs: Any) -> str:
-        """Search with matching line context."""
-        return self._run_command("search:context", **kwargs)
+    def read(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Read file contents. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("read", file=file, path=path)
 
-    def search_open(self, **kwargs: Any) -> str:
-        """Open search view."""
-        return self._run_command("search:open", **kwargs)
+    # ==========================================
+    # Recents
+    # ==========================================
+
+    def recents(self, total: bool = False) -> str:
+        """
+        List recently opened files.
+        
+        Args:
+            total: Return recent file count.
+        """
+        return self._run_command("recents", total=total)
+
+    # ==========================================
+    # Reload & Restart & Rename
+    # ==========================================
+
+    def reload(self) -> str:
+        """Reload the vault."""
+        return self._run_command("reload")
+
+    def rename(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Rename a file. Defaults to the active file if omitted.
+        
+        Args:
+            name: New file name (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("rename", file=file, path=path, name=name)
+
+    def restart(self) -> str:
+        """Restart the app."""
+        return self._run_command("restart")
+
+    # ==========================================
+    # Search
+    # ==========================================
+
+    def search(self, query: str, path: Optional[str] = None, limit: Optional[int] = None, 
+               total: bool = False, case: bool = False, format: Optional[SearchFormat] = None) -> str:
+        """
+        Search vault for text.
+        
+        Args:
+            query: Search query (required).
+            path: Limit to folder.
+            limit: Max files.
+            total: Return match count.
+            case: Case sensitive.
+            format: Output format (default: text).
+        """
+        return self._run_command("search", query=query, path=path, limit=limit, total=total, case=case, format=format)
+
+    def search_context(self, query: str, path: Optional[str] = None, limit: Optional[int] = None, 
+                       case: bool = False, format: Optional[SearchFormat] = None) -> str:
+        """
+        Search with matching line context.
+        
+        Args:
+            query: Search query (required).
+            path: Limit to folder.
+            limit: Max files.
+            case: Case sensitive.
+            format: Output format (default: text).
+        """
+        return self._run_command("search:context", query=query, path=path, limit=limit, case=case, format=format)
+
+    def search_open(self, query: Optional[str] = None) -> str:
+        """
+        Open search view.
+        
+        Args:
+            query: Initial search query.
+        """
+        return self._run_command("search:open", query=query)
+
+    # ==========================================
+    # Snippets
+    # ==========================================
+
+    def snippet_disable(self, name: str) -> str:
+        """
+        Disable a CSS snippet.
+        
+        Args:
+            name: Snippet name (required).
+        """
+        return self._run_command("snippet:disable", name=name)
+
+    def snippet_enable(self, name: str) -> str:
+        """
+        Enable a CSS snippet.
+        
+        Args:
+            name: Snippet name (required).
+        """
+        return self._run_command("snippet:enable", name=name)
+
+    def snippets(self) -> str:
+        """List installed CSS snippets."""
+        return self._run_command("snippets")
+
+    def snippets_enabled(self) -> str:
+        """List enabled CSS snippets."""
+        return self._run_command("snippets:enabled")
 
     # ==========================================
     # Sync
     # ==========================================
 
-    def sync(self, **kwargs: Any) -> str:
-        """Pause or resume sync."""
-        return self._run_command("sync", **kwargs)
+    def sync(self, on: bool = False, off: bool = False) -> str:
+        """
+        Pause or resume sync.
+        
+        Args:
+            on: Resume sync.
+            off: Pause sync.
+        """
+        return self._run_command("sync", on=on, off=off)
 
-    def sync_deleted(self, **kwargs: Any) -> str:
-        """List deleted files in sync."""
-        return self._run_command("sync:deleted", **kwargs)
+    def sync_deleted(self, total: bool = False) -> str:
+        """
+        List deleted files in sync.
+        
+        Args:
+            total: Return deleted file count.
+        """
+        return self._run_command("sync:deleted", total=total)
 
-    def sync_history(self, **kwargs: Any) -> str:
-        """List sync version history for a file."""
-        return self._run_command("sync:history", **kwargs)
+    def sync_history(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False) -> str:
+        """
+        List sync version history for a file. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            total: Return version count.
+        """
+        return self._run_command("sync:history", file=file, path=path, total=total)
 
-    def sync_open(self, **kwargs: Any) -> str:
-        """Open sync history."""
-        return self._run_command("sync:open", **kwargs)
+    def sync_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Open sync history. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("sync:open", file=file, path=path)
 
-    def sync_read(self, **kwargs: Any) -> str:
-        """Read a sync version."""
-        return self._run_command("sync:read", **kwargs)
+    def sync_read(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Read a sync version. Defaults to the active file if omitted.
+        
+        Args:
+            version: Version number (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("sync:read", file=file, path=path, version=version)
 
-    def sync_restore(self, **kwargs: Any) -> str:
-        """Restore a sync version."""
-        return self._run_command("sync:restore", **kwargs)
+    def sync_restore(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Restore a sync version. Defaults to the active file if omitted.
+        
+        Args:
+            version: Version number (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("sync:restore", file=file, path=path, version=version)
 
-    def sync_status(self, **kwargs: Any) -> str:
+    def sync_status(self) -> str:
         """Show sync status."""
-        return self._run_command("sync:status", **kwargs)
+        return self._run_command("sync:status")
 
     # ==========================================
-    # Vault, Workspace Extensions, System
+    # Tabs
     # ==========================================
 
-    def vault_info(self, **kwargs: Any) -> str:
-        """Show vault info (renamed from vault to not conflict with self.vault parameter)."""
-        return self._run_command("vault", **kwargs)
+    def tab_open(self, group: Optional[str] = None, file: Optional[str] = None, view: Optional[str] = None) -> str:
+        """
+        Open a new tab.
+        
+        Args:
+            group: Tab group ID.
+            file: File to open.
+            view: View type to open.
+        """
+        return self._run_command("tab:open", group=group, file=file, view=view)
 
-    def vaults(self, **kwargs: Any) -> str:
-        """List known vaults."""
-        return self._run_command("vaults", **kwargs)
+    def tabs(self, ids: bool = False) -> str:
+        """
+        List open tabs.
+        
+        Args:
+            ids: Include tab IDs.
+        """
+        return self._run_command("tabs", ids=ids)
 
-    def workspace_info(self, **kwargs: Any) -> str:
-        """Show workspace tree."""
-        return self._run_command("workspace", **kwargs)
+    # ==========================================
+    # Tags
+    # ==========================================
 
-    def workspace_delete(self, **kwargs: Any) -> str:
-        """Delete a saved workspace."""
-        return self._run_command("workspace:delete", **kwargs)
+    def tag(self, name: str, total: bool = False, verbose: bool = False) -> str:
+        """
+        Get tag info.
+        
+        Args:
+            name: Tag name (required).
+            total: Return occurrence count.
+            verbose: Include file list and count.
+        """
+        return self._run_command("tag", name=name, total=total, verbose=verbose)
 
-    def workspaces(self, **kwargs: Any) -> str:
-        """List saved workspaces."""
-        return self._run_command("workspaces", **kwargs)
+    def tags(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False, 
+             counts: bool = False, sort: Optional[str] = None, format: Optional[FormatStandard] = None, 
+             active: bool = False) -> str:
+        """
+        List tags in the vault. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            total: Return tag count.
+            counts: Include tag counts.
+            sort: Sort by count (default: name).
+            format: Output format (default: tsv).
+            active: Show tags for active file.
+        """
+        return self._run_command("tags", file=file, path=path, total=total, counts=counts, sort=sort, format=format, active=active)
 
-    def tab_open(self, **kwargs: Any) -> str:
-        """Open a new tab."""
-        return self._run_command("tab:open", **kwargs)
+    # ==========================================
+    # Tasks
+    # ==========================================
 
-    def hotkey(self, **kwargs: Any) -> str:
-        """Get hotkey for a command."""
-        return self._run_command("hotkey", **kwargs)
+    def task(self, ref: Optional[str] = None, file: Optional[str] = None, path: Optional[str] = None,
+             line: Optional[int] = None, toggle: bool = False, done: bool = False, todo: bool = False,
+             daily: bool = False, status: Optional[str] = None) -> str:
+        """
+        Show or update a task.
+        
+        Args:
+            ref: Task reference (path:line).
+            file: File name.
+            path: File path.
+            line: Line number.
+            toggle: Toggle task status.
+            done: Mark as done.
+            todo: Mark as todo.
+            daily: Use daily note.
+            status: Set status character.
+        """
+        return self._run_command("task", ref=ref, file=file, path=path, line=line, toggle=toggle, done=done, todo=todo, daily=daily, status=status)
 
-    def hotkeys(self, **kwargs: Any) -> str:
-        """List hotkeys."""
-        return self._run_command("hotkeys", **kwargs)
+    def tasks(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False,
+              done: bool = False, todo: bool = False, status: Optional[str] = None, verbose: bool = False,
+              format: Optional[FormatStandard] = None, active: bool = False, daily: bool = False) -> str:
+        """
+        List tasks in the vault. Defaults to the active file if omitted.
+        
+        Args:
+            file: Filter by file name.
+            path: Filter by file path.
+            total: Return task count.
+            done: Show completed tasks.
+            todo: Show incomplete tasks.
+            status: Filter by status character.
+            verbose: Group by file with line numbers.
+            format: Output format (default: text).
+            active: Show tasks for active file.
+            daily: Show tasks from daily note.
+        """
+        return self._run_command("tasks", file=file, path=path, total=total, done=done, todo=todo, status=status, verbose=verbose, format=format, active=active, daily=daily)
 
-    def reload(self, **kwargs: Any) -> str:
-        """Reload the vault."""
-        return self._run_command("reload", **kwargs)
+    # ==========================================
+    # Templates
+    # ==========================================
 
-    def restart(self, **kwargs: Any) -> str:
-        """Restart the app."""
-        return self._run_command("restart", **kwargs)
+    def template_insert(self, name: str) -> str:
+        """
+        Insert template into active file.
+        
+        Args:
+            name: Template name (required).
+        """
+        return self._run_command("template:insert", name=name)
 
-    def web(self, **kwargs: Any) -> str:
-        """Open URL in web viewer."""
-        return self._run_command("web", **kwargs)
+    def template_read(self, name: str, resolve: bool = False, title: Optional[str] = None) -> str:
+        """
+        Read template content.
+        
+        Args:
+            name: Template name (required).
+            resolve: Resolve template variables.
+            title: Title for variable resolution.
+        """
+        return self._run_command("template:read", name=name, resolve=resolve, title=title)
 
-    def wordcount(self, **kwargs: Any) -> str:
-        """Count words and characters."""
-        return self._run_command("wordcount", **kwargs)
+    def templates(self, total: bool = False) -> str:
+        """
+        List templates.
+        
+        Args:
+            total: Return template count.
+        """
+        return self._run_command("templates", total=total)
 
+    # ==========================================
+    # Themes
+    # ==========================================
+
+    def theme(self, name: Optional[str] = None) -> str:
+        """
+        Show active theme or get info.
+        
+        Args:
+            name: Theme name for details.
+        """
+        return self._run_command("theme", name=name)
+
+    def theme_install(self, name: str, enable: bool = False) -> str:
+        """
+        Install a community theme.
+        
+        Args:
+            name: Theme name (required).
+            enable: Activate after install.
+        """
+        return self._run_command("theme:install", name=name, enable=enable)
+
+    def theme_set(self, name: str) -> str:
+        """
+        Set active theme.
+        
+        Args:
+            name: Theme name (empty for default) (required).
+        """
+        return self._run_command("theme:set", name=name)
+
+    def theme_uninstall(self, name: str) -> str:
+        """
+        Uninstall a theme.
+        
+        Args:
+            name: Theme name (required).
+        """
+        return self._run_command("theme:uninstall", name=name)
+
+    def themes(self, versions: bool = False) -> str:
+        """
+        List installed themes.
+        
+        Args:
+            versions: Include version numbers.
+        """
+        return self._run_command("themes", versions=versions)
+
+    # ==========================================
+    # Unique
+    # ==========================================
+
+    def unique(self, name: Optional[str] = None, content: Optional[str] = None, 
+               paneType: Optional[PaneType] = None, open: bool = False) -> str:
+        """
+        Create unique note.
+        
+        Args:
+            name: Note name.
+            content: Initial content.
+            paneType: Pane type to open in.
+            open: Open file after creating.
+        """
+        return self._run_command("unique", name=name, content=content, paneType=paneType, open=open)
+
+    # ==========================================
+    # Unresolved
+    # ==========================================
+
+    def unresolved(self, total: bool = False, counts: bool = False, verbose: bool = False, format: Optional[FormatStandard] = None) -> str:
+        """
+        List unresolved links in vault.
+        
+        Args:
+            total: Return unresolved link count.
+            counts: Include link counts.
+            verbose: Include source files.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("unresolved", total=total, counts=counts, verbose=verbose, format=format)
+
+    # ==========================================
+    # Vault & Version
+    # ==========================================
+
+    def vault_info(self, info: Optional[VaultInfo] = None) -> str:
+        """
+        Show vault info.
+        
+        Args:
+            info: Return specific info only.
+        """
+        return self._run_command("vault", info=info)
+
+    def vaults(self, total: bool = False, verbose: bool = False) -> str:
+        """
+        List known vaults.
+        
+        Args:
+            total: Return vault count.
+            verbose: Include vault paths.
+        """
+        return self._run_command("vaults", total=total, verbose=verbose)
+
+    def version(self) -> str:
+        """Show Obsidian version."""
+        return self._run_command("version")
+
+    # ==========================================
+    # Web & Wordcount
+    # ==========================================
+
+    def web(self, url: str, newtab: bool = False) -> str:
+        """
+        Open URL in web viewer.
+        
+        Args:
+            url: URL to open (required).
+            newtab: Open in new tab.
+        """
+        return self._run_command("web", url=url, newtab=newtab)
+
+    def wordcount(self, file: Optional[str] = None, path: Optional[str] = None, words: bool = False, characters: bool = False) -> str:
+        """
+        Count words and characters. Defaults to the active file if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            words: Return word count only.
+            characters: Return character count only.
+        """
+        return self._run_command("wordcount", file=file, path=path, words=words, characters=characters)
+
+    # ==========================================
+    # Workspace & Workspaces
+    # ==========================================
+
+    def workspace_info(self, ids: bool = False) -> str:
+        """
+        Show workspace tree.
+        
+        Args:
+            ids: Include workspace item IDs.
+        """
+        return self._run_command("workspace", ids=ids)
+
+    def workspace_delete(self, name: str) -> str:
+        """
+        Delete a saved workspace.
+        
+        Args:
+            name: Workspace name (required).
+        """
+        return self._run_command("workspace:delete", name=name)
+
+    def workspace_load(self, name: str) -> str:
+        """
+        Load a saved workspace.
+        
+        Args:
+            name: Workspace name (required).
+        """
+        return self._run_command("workspace:load", name=name)
+
+    def workspace_save(self, name: Optional[str] = None) -> str:
+        """
+        Save current layout as workspace.
+        
+        Args:
+            name: Workspace name.
+        """
+        return self._run_command("workspace:save", name=name)
+
+    def workspaces(self, total: bool = False) -> str:
+        """
+        List saved workspaces.
+        
+        Args:
+            total: Return workspace count.
+        """
+        return self._run_command("workspaces", total=total)
