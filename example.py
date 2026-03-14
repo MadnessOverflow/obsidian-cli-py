@@ -3,8 +3,6 @@ from obsidian_cli import ObsidianClient, ObsidianCLINotFoundError
 
 def main():
     try:
-        # Note: 'obsidian-dummy' forces the not found error for testing purposes,
-        # unless you actually have obsidian in your PATH, then we could use 'obsidian'.
         client = ObsidianClient(vault="Second Brain", executable="obsidian")
         print("Client initialized successfully.")
         print(client.help())
