@@ -1,5 +1,5 @@
 """
-py-obsidian-cli-wrapper
+obsidian-cli-py
 
 A Python wrapper for the Obsidian CLI.
 """

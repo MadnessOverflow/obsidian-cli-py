@@ -1,5 +1,5 @@
 import sys
-from py_obsidian_cli import ObsidianClient, ObsidianCLINotFoundError
+from obsidian_cli import ObsidianClient, ObsidianCLINotFoundError
 
 def main():
     try:

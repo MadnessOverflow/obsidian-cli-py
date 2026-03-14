@@ -1,6 +1,6 @@
-# py-obsidian-cli-wrapper
+# obsidian-cli-py
 
-**py-obsidian-cli-wrapper** is an unofficial, easy-to-use Python bridge for the new [Obsidian CLI](https://help.obsidian.md/cli).
+**obsidian-cli-py** is an unofficial, easy-to-use Python bridge for the new [Obsidian CLI](https://help.obsidian.md/cli).
 
 It allows you to programmatically interact with your Obsidian vaults, create notes, search your knowledge base, and much more, straight from Python!
 
@@ -13,9 +13,8 @@ It allows you to programmatically interact with your Obsidian vaults, create not
 
 ## Installation
 
-*(Coming soon to PyPI)*
 ```bash
-pip install py-obsidian-cli-wrapper
+pip install obsidian-cli-py
 ```
 
 > **Note**: This library requires the official [Obsidian CLI](https://help.obsidian.md/cli) to be installed and enabled in your Obsidian app (requires Obsidian v1.11.7+ or early access 1.12.x+). The Obsidian app must be running for the CLI to work.
@@ -23,7 +22,7 @@ pip install py-obsidian-cli-wrapper
 ## Quick Start
 
 ```python
-from py_obsidian_cli import ObsidianClient
+from obsidian_cli import ObsidianClient
 
 # Initialize the client. Optionally specify a vault name.
 client = ObsidianClient(vault="My Vault")

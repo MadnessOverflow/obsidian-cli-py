@@ -1,17 +1,17 @@
 import pytest
 import subprocess
-from py_obsidian_cli import ObsidianClient, ObsidianCLINotFoundError, ObsidianCLICommandError
+from obsidian_cli import ObsidianClient, ObsidianCLINotFoundError, ObsidianCLICommandError
 
 
 @pytest.fixture
 def mock_shutil_which(mocker):
     # Mock shutil.which to pretend obsidian is installed
-    return mocker.patch('py_obsidian_cli.client.shutil.which', return_value='/usr/local/bin/obsidian')
+    return mocker.patch('obsidian_cli.client.shutil.which', return_value='/usr/local/bin/obsidian')
 
 
 @pytest.fixture
 def mock_subprocess_run(mocker):
-    mock = mocker.patch('py_obsidian_cli.client.subprocess.run')
+    mock = mocker.patch('obsidian_cli.client.subprocess.run')
     # Default successful mock return
     mock.return_value.returncode = 0
     mock.return_value.stdout = "Success output\n"
@@ -20,7 +20,7 @@ def mock_subprocess_run(mocker):
 
 
 def test_init_executable_not_found(mocker):
-    mocker.patch('py_obsidian_cli.client.shutil.which', return_value=None)
+    mocker.patch('obsidian_cli.client.shutil.which', return_value=None)
     with pytest.raises(ObsidianCLINotFoundError):
         ObsidianClient()
 
@@ -68,4 +68,4 @@ def test_run_command_failure(mock_shutil_which, mock_subprocess_run):
         client.search("query")
     
     assert exc_info.value.exit_code == 1
-    assert "Command 'obsidian search query=query' failed" in str(exc_info.value)
+    assert "Command 'obsidian search query=query format=text' failed" in str(exc_info.value)
