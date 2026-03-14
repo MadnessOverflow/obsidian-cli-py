@@ -435,24 +435,40 @@ class ObsidianClient:
         return self._run_command("snippets:enabled", **kwargs)
 
     # ==========================================
-    # QuickAdd, Tasks, and Templates
+    # Publish and Unique Notes
     # ==========================================
 
-    def quickadd(self, **kwargs: Any) -> str:
-        """Run a QuickAdd choice."""
-        return self._run_command("quickadd", **kwargs)
+    def publish_site(self, **kwargs: Any) -> str:
+        """Show publish site info (slug, URL)."""
+        return self._run_command("publish:site", **kwargs)
 
-    def quickadd_check(self, **kwargs: Any) -> str:
-        """Check missing inputs for a QuickAdd choice."""
-        return self._run_command("quickadd:check", **kwargs)
+    def publish_list(self, **kwargs: Any) -> str:
+        """List published files."""
+        return self._run_command("publish:list", **kwargs)
 
-    def quickadd_list(self, **kwargs: Any) -> str:
-        """List QuickAdd choices."""
-        return self._run_command("quickadd:list", **kwargs)
+    def publish_status(self, **kwargs: Any) -> str:
+        """List publish changes."""
+        return self._run_command("publish:status", **kwargs)
 
-    def quickadd_run(self, **kwargs: Any) -> str:
-        """Run a QuickAdd choice."""
-        return self._run_command("quickadd:run", **kwargs)
+    def publish_add(self, **kwargs: Any) -> str:
+        """Publish a file or all changed files."""
+        return self._run_command("publish:add", **kwargs)
+
+    def publish_remove(self, **kwargs: Any) -> str:
+        """Unpublish a file."""
+        return self._run_command("publish:remove", **kwargs)
+
+    def publish_open(self, **kwargs: Any) -> str:
+        """Open file on published site."""
+        return self._run_command("publish:open", **kwargs)
+
+    def unique(self, **kwargs: Any) -> str:
+        """Create unique note."""
+        return self._run_command("unique", **kwargs)
+
+    # ==========================================
+    # Tasks and Templates
+    # ==========================================
 
     def task(self, **kwargs: Any) -> str:
         """Show or update a task."""
