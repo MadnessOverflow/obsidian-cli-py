@@ -1,3 +1,4 @@
+import sys
 import subprocess
 import shutil
 from typing import Optional, List, Dict, Any, Literal
@@ -35,10 +36,14 @@ class ObsidianClient:
             *args: Additional positional arguments.
             **kwargs: Parameters and flags for the command.
         """
+        is_windows = sys.platform == "win32"
         cmd_list: List[str] = [self.executable]
 
         if self.vault:
-            cmd_list.append(f"vault={self.vault}")
+            if is_windows and ' ' in self.vault:
+                cmd_list.append(f'vault="{self.vault}"')
+            else:
+                cmd_list.append(f"vault={self.vault}")
 
         cmd_list.append(command)
         cmd_list.extend(args)
@@ -55,15 +60,30 @@ class ObsidianClient:
                 continue
             elif v is not None:
                 val_str = str(v)
-                cmd_list.append(f"{k}={val_str}")
+                val_str = val_str.replace('\n', '\\n').replace('\t', '\\t')
+
+                if is_windows and ' ' in val_str:
+                    cmd_list.append(f'{k}="{val_str}"')
+                else:
+                    cmd_list.append(f"{k}={val_str}")
+
+        cmd_string = " ".join(cmd_list)
+
+        if is_windows:
+            cmd_to_run = " ".join(cmd_list)
+            use_shell = True
+        else:
+            cmd_to_run = cmd_list
+            use_shell = False
 
         try:
             result = subprocess.run(
-                cmd_list,
+                cmd_to_run,
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
-                check=True
+                check=True,
+                shell=use_shell
             )
 
             if result.stdout is None:
