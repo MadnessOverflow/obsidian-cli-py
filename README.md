@@ -1,6 +1,7 @@
 # obsidian-cli-py
 
 [![PyPI version](https://img.shields.io/pypi/v/obsidian-cli-py.svg)](https://pypi.org/project/obsidian-cli-py/)
+[![Python versions](https://img.shields.io/pypi/pyversions/obsidian-cli-py.svg)](https://pypi.org/project/obsidian-cli-py/)
 [![Obsidian CLI Docs](https://img.shields.io/badge/docs-Obsidian_CLI-blue.svg)](https://help.obsidian.md/cli)
 
 **obsidian-cli-py** is an unofficial, easy-to-use Python bridge for the new [Obsidian CLI](https://help.obsidian.md/cli).
