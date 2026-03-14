@@ -3,19 +3,6 @@ import shutil
 from typing import Optional, List, Dict, Any, Literal
 from .exceptions import ObsidianCLINotFoundError, ObsidianCLICommandError
 
-# Common literal types for Obsidian CLI options
-PaneType = Literal["tab", "split", "window"]
-FormatStandard = Literal["json", "tsv", "csv"]
-BaseFormat = Literal["json", "csv", "tsv", "md", "paths"]
-DiffFilter = Literal["local", "sync"]
-FolderInfo = Literal["files", "folders", "size"]
-OutlineFormat = Literal["tree", "md", "json"]
-PluginType = Literal["core", "community"]
-PropertyType = Literal["text", "list", "number", "checkbox", "date", "datetime"]
-SearchFormat = Literal["text", "json"]
-VaultInfo = Literal["name", "path", "files", "folders", "size"]
-LogLevel = Literal["log", "warn", "error", "info", "debug"]
-
 class ObsidianClient:
     """A client for interacting with the Obsidian CLI."""
 
@@ -59,6 +46,8 @@ class ObsidianClient:
         for k, v in kwargs.items():
             if k == "from_version":
                 k = "from"  # Map 'from_version' safely to 'from'
+            elif k == "to_version":
+                k = "to"  # Map 'to_version' to 'to' 
             
             if v is True:
                 cmd_list.append(str(k))
@@ -85,61 +74,54 @@ class ObsidianClient:
             ) from e
 
     # ==========================================
-    # Aliases
+    # General commands
     # ==========================================
 
-    def aliases(self, file: Optional[str] = None, path: Optional[str] = None, 
-                total: bool = False, verbose: bool = False, active: bool = False) -> str:
+    def help(self, command: Optional[str] = None) -> str:
         """
-        List aliases in the vault.
-        Note: Defaults to the active file if file/path is omitted and 'active' is not True.
+        Show list of all available commands.
         
         Args:
-            file: File name.
-            path: File path.
-            total: Return alias count.
-            verbose: Include file paths.
-            active: Show aliases for active file.
+            command: Show help for a specific command.
         """
-        return self._run_command("aliases", file=file, path=path, total=total, verbose=verbose, active=active)
+        if command:
+            return self._run_command("help", command)
+        return self._run_command("help")
 
-    # ==========================================
-    # Append
-    # ==========================================
+    def version(self) -> str:
+        """Show Obsidian version."""
+        return self._run_command("version")
 
-    def append(self, content: str, file: Optional[str] = None, path: Optional[str] = None, inline: bool = False) -> str:
+    def reload(self) -> str:
+        """Reload the app window."""
+        return self._run_command("reload")
+
+    def restart(self) -> str:
+        """Restart the app."""
+        return self._run_command("restart")
+
+    def execute(self, command: str, *args: str, **kwargs: Any) -> str:
         """
-        Append content to a file. Defaults to the active file if file/path is omitted.
+        Execute an arbitrary Obsidian CLI command, that is not implemented as a method of this class (f.ex. for third party plugins).
         
         Args:
-            content: Content to append (required).
-            file: File name.
-            path: File path.
-            inline: Append without newline.
+            command: The command to execute (e.g., 'quickadd', 'quickadd:run').
+            *args: Additional positional arguments.
+            **kwargs: Command-specific parameters and flags.
         """
-        return self._run_command("append", content=content, file=file, path=path, inline=inline)
-
-    # ==========================================
-    # Backlinks
-    # ==========================================
-
-    def backlinks(self, file: Optional[str] = None, path: Optional[str] = None, 
-                  counts: bool = False, total: bool = False, format: Optional[FormatStandard] = None) -> str:
-        """
-        List backlinks to a file. Defaults to the active file if omitted.
-        
-        Args:
-            file: Target file name.
-            path: Target file path.
-            counts: Include link counts.
-            total: Return backlink count.
-            format: Output format (default: tsv).
-        """
-        return self._run_command("backlinks", file=file, path=path, counts=counts, total=total, format=format)
+        return self._run_command(command, *args, **kwargs)
 
     # ==========================================
     # Bases
     # ==========================================
+
+    def bases(self) -> str:
+        """List all .base files in vault."""
+        return self._run_command("bases")
+
+    def base_views(self) -> str:
+        """List views in the current base file."""
+        return self._run_command("base:views")
 
     def base_create(self, file: Optional[str] = None, path: Optional[str] = None, view: Optional[str] = None,
                     name: Optional[str] = None, content: Optional[str] = None, 
@@ -159,9 +141,9 @@ class ObsidianClient:
         return self._run_command("base:create", file=file, path=path, view=view, name=name, content=content, open=open, newtab=newtab)
 
     def base_query(self, file: Optional[str] = None, path: Optional[str] = None, view: Optional[str] = None,
-                   format: Optional[BaseFormat] = None) -> str:
+                   format: Optional[Literal["json", "csv", "tsv", "md", "paths"]] = "json") -> str:
         """
-        Query a base and return results. Defaults to the active file if omitted.
+        Query a base and return results.
         
         Args:
             file: Base file name.
@@ -171,17 +153,20 @@ class ObsidianClient:
         """
         return self._run_command("base:query", file=file, path=path, view=view, format=format)
 
-    def base_views(self) -> str:
-        """List views in the current base file."""
-        return self._run_command("base:views")
-
-    def bases(self) -> str:
-        """List all base files in vault."""
-        return self._run_command("bases")
-
     # ==========================================
     # Bookmarks
     # ==========================================
+
+    def bookmarks(self, total: bool = False, verbose: bool = False, format: Optional[Literal["json", "tsv", "csv"]] = "tsv") -> str:
+        """
+        List bookmarks.
+        
+        Args:
+            total: Return bookmark count.
+            verbose: Include bookmark types.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("bookmarks", total=total, verbose=verbose, format=format)
 
     def bookmark(self, file: Optional[str] = None, subpath: Optional[str] = None, folder: Optional[str] = None,
                  search: Optional[str] = None, url: Optional[str] = None, title: Optional[str] = None) -> str:
@@ -198,29 +183,9 @@ class ObsidianClient:
         """
         return self._run_command("bookmark", file=file, subpath=subpath, folder=folder, search=search, url=url, title=title)
 
-    def bookmarks(self, total: bool = False, verbose: bool = False, format: Optional[FormatStandard] = None) -> str:
-        """
-        List bookmarks.
-        
-        Args:
-            total: Return bookmark count.
-            verbose: Include bookmark types.
-            format: Output format (default: tsv).
-        """
-        return self._run_command("bookmarks", total=total, verbose=verbose, format=format)
-
     # ==========================================
-    # Command & Commands
+    # Command palette
     # ==========================================
-
-    def command(self, id: str) -> str:
-        """
-        Execute an Obsidian command.
-        
-        Args:
-            id: Command ID to execute (required).
-        """
-        return self._run_command("command", id=id)
 
     def commands(self, filter: Optional[str] = None) -> str:
         """
@@ -231,32 +196,42 @@ class ObsidianClient:
         """
         return self._run_command("commands", filter=filter)
 
-    # ==========================================
-    # Create
-    # ==========================================
-
-    def create(self, name: Optional[str] = None, path: Optional[str] = None, content: Optional[str] = None,
-               template: Optional[str] = None, overwrite: bool = False, open: bool = False, newtab: bool = False) -> str:
+    def command(self, id: str) -> str:
         """
-        Create a new file.
+        Execute an Obsidian command.
         
         Args:
-            name: File name.
-            path: File path.
-            content: Initial content.
-            template: Template to use.
-            overwrite: Overwrite if file exists.
-            open: Open file after creating.
-            newtab: Open in new tab.
+            id: Command ID to execute (required).
         """
-        return self._run_command("create", name=name, path=path, content=content, template=template, 
-                                 overwrite=overwrite, open=open, newtab=newtab)
+        return self._run_command("command", id=id)
+
+    def hotkeys(self, total: bool = False, verbose: bool = False, format: Optional[Literal["json", "tsv", "csv"]] = "tsv", all: bool = False) -> str:
+        """
+        List hotkeys.
+        
+        Args:
+            total: Return hotkey count.
+            verbose: Show if hotkey is custom.
+            format: Output format (default: tsv).
+            all: Include commands without hotkeys.
+        """
+        return self._run_command("hotkeys", total=total, verbose=verbose, format=format, all=all)
+
+    def hotkey(self, id: str, verbose: bool = False) -> str:
+        """
+        Get hotkey for a command.
+        
+        Args:
+            id: Command ID (required).
+            verbose: Show if custom or default.
+        """
+        return self._run_command("hotkey", id=id, verbose=verbose)
 
     # ==========================================
-    # Daily Notes
+    # Daily notes
     # ==========================================
 
-    def daily(self, paneType: Optional[PaneType] = None) -> str:
+    def daily(self, paneType: Optional[Literal["tab", "split", "window"]] = None) -> str:
         """
         Open daily note.
         
@@ -265,7 +240,15 @@ class ObsidianClient:
         """
         return self._run_command("daily", paneType=paneType)
 
-    def daily_append(self, content: str, inline: bool = False, open: bool = False, paneType: Optional[PaneType] = None) -> str:
+    def daily_path(self) -> str:
+        """Get daily note path."""
+        return self._run_command("daily:path")
+
+    def daily_read(self) -> str:
+        """Read daily note contents."""
+        return self._run_command("daily:read")
+
+    def daily_append(self, content: str, inline: bool = False, open: bool = False, paneType: Optional[Literal["tab", "split", "window"]] = None) -> str:
         """
         Append content to daily note.
         
@@ -277,11 +260,7 @@ class ObsidianClient:
         """
         return self._run_command("daily:append", content=content, inline=inline, open=open, paneType=paneType)
 
-    def daily_path(self) -> str:
-        """Get daily note path."""
-        return self._run_command("daily:path")
-
-    def daily_prepend(self, content: str, inline: bool = False, open: bool = False, paneType: Optional[PaneType] = None) -> str:
+    def daily_prepend(self, content: str, inline: bool = False, open: bool = False, paneType: Optional[Literal["tab", "split", "window"]] = None) -> str:
         """
         Prepend content to daily note.
         
@@ -293,64 +272,77 @@ class ObsidianClient:
         """
         return self._run_command("daily:prepend", content=content, inline=inline, open=open, paneType=paneType)
 
-    def daily_read(self) -> str:
-        """Read daily note contents."""
-        return self._run_command("daily:read")
-
     # ==========================================
-    # Deadends
-    # ==========================================
-
-    def deadends(self, total: bool = False, all: bool = False) -> str:
-        """
-        List files with no outgoing links.
-        
-        Args:
-            total: Return dead-end count.
-            all: Include non-markdown files.
-        """
-        return self._run_command("deadends", total=total, all=all)
-
-    # ==========================================
-    # Delete
-    # ==========================================
-
-    def delete(self, file: Optional[str] = None, path: Optional[str] = None, permanent: bool = False) -> str:
-        """
-        Delete a file. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-            permanent: Skip trash, delete permanently.
-        """
-        return self._run_command("delete", file=file, path=path, permanent=permanent)
-
-    # ==========================================
-    # Diff
+    # File history
     # ==========================================
 
     def diff(self, file: Optional[str] = None, path: Optional[str] = None, 
-             from_version: Optional[int] = None, to: Optional[int] = None, filter: Optional[DiffFilter] = None) -> str:
+             from_version: Optional[int] = None, to_version: Optional[int] = None, filter: Optional[Literal["local", "sync"]] = None) -> str:
         """
-        List or diff local/sync versions. Defaults to the active file if omitted.
+        List or diff local/sync versions. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
             path: File path.
-            from_version: Version number to diff from.
-            to: Version number to diff to.
+            from_version: Version number to diff from. (aliased from 'from' to avoid Python keyword conflict)
+            to_version: Version number to diff to. (aliased from 'to' for consistency)
             filter: Filter by version source.
         """
-        return self._run_command("diff", file=file, path=path, from_version=from_version, to=to, filter=filter)
+        return self._run_command("diff", file=file, path=path, from_version=from_version, to_version=to_version, filter=filter)
 
-    # ==========================================
-    # File & Files
-    # ==========================================
-
-    def file_info(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+    def history(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Show file info. Defaults to the active file if omitted.
+        List file history versions. Defaults to the active file/path if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("history", file=file, path=path)
+
+    def history_list(self) -> str:
+        """List files with history."""
+        return self._run_command("history:list")
+
+    def history_read(self, file: Optional[str] = None, path: Optional[str] = None, version: int = 1) -> str:
+        """
+        Read a file history version. Defaults to the active file/path if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            version: Version number (default: 1).
+        """
+        return self._run_command("history:read", file=file, path=path, version=version)
+
+    def history_restore(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Restore a file history version. Defaults to the active file/path if omitted.
+        
+        Args:
+            version: Version number (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("history:restore", file=file, path=path, version=version)
+
+    def history_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Open file recovery. Defaults to the active file/path if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("history:open", file=file, path=path)
+
+    # ==========================================
+    # Files and folders
+    # ==========================================
+
+    def file(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Show file info. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
@@ -369,11 +361,7 @@ class ObsidianClient:
         """
         return self._run_command("files", folder=folder, ext=ext, total=total)
 
-    # ==========================================
-    # Folder & Folders
-    # ==========================================
-
-    def folder(self, path: str, info: Optional[FolderInfo] = None) -> str:
+    def folder(self, path: str, info: Optional[Literal["files", "folders", "size"]] = None) -> str:
         """
         Show folder info.
         
@@ -393,134 +381,9 @@ class ObsidianClient:
         """
         return self._run_command("folders", folder=folder, total=total)
 
-    # ==========================================
-    # Help
-    # ==========================================
-
-    def help(self, command: Optional[str] = None) -> str:
-        """
-        Show list of all available commands.
-        
-        Args:
-            command: Show help for a specific command.
-        """
-        if command:
-            return self._run_command("help", command)
-        return self._run_command("help")
-
-    # ==========================================
-    # History
-    # ==========================================
-
-    def history(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        List file history versions. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("history", file=file, path=path)
-
-    def history_list(self) -> str:
-        """List files with history."""
-        return self._run_command("history:list")
-
-    def history_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Open file recovery. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("history:open", file=file, path=path)
-
-    def history_read(self, file: Optional[str] = None, path: Optional[str] = None, version: int = 1) -> str:
-        """
-        Read a file history version. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-            version: Version number (default: 1).
-        """
-        return self._run_command("history:read", file=file, path=path, version=version)
-
-    def history_restore(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Restore a file history version. Defaults to the active file if omitted.
-        
-        Args:
-            version: Version number (required).
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("history:restore", file=file, path=path, version=version)
-
-    # ==========================================
-    # Hotkey & Hotkeys
-    # ==========================================
-
-    def hotkey(self, id: str, verbose: bool = False) -> str:
-        """
-        Get hotkey for a command.
-        
-        Args:
-            id: Command ID (required).
-            verbose: Show if custom or default.
-        """
-        return self._run_command("hotkey", id=id, verbose=verbose)
-
-    def hotkeys(self, total: bool = False, verbose: bool = False, format: Optional[FormatStandard] = None, all: bool = False) -> str:
-        """
-        List hotkeys.
-        
-        Args:
-            total: Return hotkey count.
-            verbose: Show if hotkey is custom.
-            format: Output format (default: tsv).
-            all: Include commands without hotkeys.
-        """
-        return self._run_command("hotkeys", total=total, verbose=verbose, format=format, all=all)
-
-    # ==========================================
-    # Links
-    # ==========================================
-
-    def links(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False) -> str:
-        """
-        List outgoing links from a file. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-            total: Return link count.
-        """
-        return self._run_command("links", file=file, path=path, total=total)
-
-    # ==========================================
-    # Move
-    # ==========================================
-
-    def move(self, to: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Move or rename a file. Defaults to the active file if omitted.
-        
-        Args:
-            to: Destination folder or path (required).
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("move", file=file, path=path, to=to)
-
-    # ==========================================
-    # Open
-    # ==========================================
-
     def open(self, file: Optional[str] = None, path: Optional[str] = None, newtab: bool = False) -> str:
         """
-        Open a file. Defaults to the active file if omitted.
+        Open a file. Requires either file or path.
         
         Args:
             file: File name.
@@ -529,9 +392,133 @@ class ObsidianClient:
         """
         return self._run_command("open", file=file, path=path, newtab=newtab)
 
+    def create(self, name: Optional[str] = None, path: Optional[str] = None, content: Optional[str] = None,
+               template: Optional[str] = None, overwrite: bool = False, open: bool = False, newtab: bool = False) -> str:
+        """
+        Create a new file. When no name or path is provided creates "Unnamed.md" in root folder (like Ctrl+N).
+        
+        Args:
+            name: File name.
+            path: File path.
+            content: Initial content.
+            template: Template to use.
+            overwrite: Overwrite if file exists.
+            open: Open file after creating.
+            newtab: Open in new tab.
+        """
+        return self._run_command("create", name=name, path=path, content=content, template=template, 
+                                 overwrite=overwrite, open=open, newtab=newtab)
+
+    def read(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Read file contents. Defaults to the active file/path if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("read", file=file, path=path)
+
+    def append(self, content: str, file: Optional[str] = None, path: Optional[str] = None, inline: bool = False) -> str:
+        """
+        Append content to a file. Defaults to the active file if file/path is omitted.
+        
+        Args:
+            content: Content to append (required).
+            file: File name.
+            path: File path.
+            inline: Append without newline.
+        """
+        return self._run_command("append", content=content, file=file, path=path, inline=inline)
+
+    def prepend(self, content: str, file: Optional[str] = None, path: Optional[str] = None, inline: bool = False) -> str:
+        """
+        Prepend content to a file. Defaults to the active file/path if omitted.
+        
+        Args:
+            content: Content to prepend (required).
+            file: File name.
+            path: File path.
+            inline: Prepend without newline.
+        """
+        return self._run_command("prepend", content=content, file=file, path=path, inline=inline)
+
+    def move(self, to: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Move or rename a file. Defaults to the active file/path if omitted.
+        This will automatically update internal links if turned on in your vault settings.
+        
+        Args:
+            to: Destination folder or path (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("move", file=file, path=path, to=to)
+
+    def rename(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Rename a file. Defaults to the active file/path if omitted.
+        The file extension is preserved automatically if omitted from the new name. 
+        Use move to rename and move a file at the same time. This will automatically update internal links if turned on in your vault settings.
+        
+        Args:
+            name: New file name (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("rename", file=file, path=path, name=name)
+
+    def delete(self, file: Optional[str] = None, path: Optional[str] = None, permanent: bool = False) -> str:
+        """
+        Delete a file. Defaults to the active file/path if omitted. Trash by default.
+        
+        Args:
+            file: File name.
+            path: File path.
+            permanent: Skip trash, delete permanently.
+        """
+        return self._run_command("delete", file=file, path=path, permanent=permanent)
+
     # ==========================================
-    # Orphans
+    # Links
     # ==========================================
+
+    def backlinks(self, file: Optional[str] = None, path: Optional[str] = None, 
+                  counts: bool = False, total: bool = False, format: Optional[Literal["json", "tsv", "csv"]] = "tsv") -> str:
+        """
+        List backlinks to a file. Defaults to the active file/path if omitted.
+        
+        Args:
+            file: Target file name.
+            path: Target file path.
+            counts: Include link counts.
+            total: Return backlink count.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("backlinks", file=file, path=path, counts=counts, total=total, format=format)
+
+    def links(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False) -> str:
+        """
+        List outgoing links from a file. Defaults to the active file/path if omitted.
+        
+        Args:
+            file: File name.
+            path: File path.
+            total: Return link count.
+        """
+        return self._run_command("links", file=file, path=path, total=total)
+
+    def unresolved(self, total: bool = False, counts: bool = False, verbose: bool = False, format: Optional[Literal["json", "tsv", "csv"]] = "tsv") -> str:
+        """
+        List unresolved links in vault.
+        
+        Args:
+            total: Return unresolved link count.
+            counts: Include link counts.
+            verbose: Include source files.
+            format: Output format (default: tsv).
+        """
+        return self._run_command("unresolved", total=total, counts=counts, verbose=verbose, format=format)
 
     def orphans(self, total: bool = False, all: bool = False) -> str:
         """
@@ -543,14 +530,24 @@ class ObsidianClient:
         """
         return self._run_command("orphans", total=total, all=all)
 
+    def deadends(self, total: bool = False, all: bool = False) -> str:
+        """
+        List files with no outgoing links.
+        
+        Args:
+            total: Return dead-end count.
+            all: Include non-markdown files.
+        """
+        return self._run_command("deadends", total=total, all=all)
+
     # ==========================================
     # Outline
     # ==========================================
 
     def outline(self, file: Optional[str] = None, path: Optional[str] = None, 
-                format: Optional[OutlineFormat] = None, total: bool = False) -> str:
+                format: Optional[Literal["tree", "md", "json"]] = "tree", total: bool = False) -> str:
         """
-        Show headings for the current file. Defaults to the active file if omitted.
+        Show headings for a file. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
@@ -564,64 +561,7 @@ class ObsidianClient:
     # Plugins
     # ==========================================
 
-    def plugin(self, id: str) -> str:
-        """
-        Get plugin info.
-        
-        Args:
-            id: Plugin ID (required).
-        """
-        return self._run_command("plugin", id=id)
-
-    def plugin_disable(self, id: str, filter: Optional[PluginType] = None) -> str:
-        """
-        Disable a plugin.
-        
-        Args:
-            id: Plugin ID (required).
-            filter: Plugin type.
-        """
-        return self._run_command("plugin:disable", id=id, filter=filter)
-
-    def plugin_enable(self, id: str, filter: Optional[PluginType] = None) -> str:
-        """
-        Enable a plugin.
-        
-        Args:
-            id: Plugin ID (required).
-            filter: Plugin type.
-        """
-        return self._run_command("plugin:enable", id=id, filter=filter)
-
-    def plugin_install(self, id: str, enable: bool = False) -> str:
-        """
-        Install a community plugin.
-        
-        Args:
-            id: Plugin ID (required).
-            enable: Enable after install.
-        """
-        return self._run_command("plugin:install", id=id, enable=enable)
-
-    def plugin_reload(self, id: str) -> str:
-        """
-        Reload a plugin (for developers).
-        
-        Args:
-            id: Plugin ID (required).
-        """
-        return self._run_command("plugin:reload", id=id)
-
-    def plugin_uninstall(self, id: str) -> str:
-        """
-        Uninstall a community plugin.
-        
-        Args:
-            id: Plugin ID (required).
-        """
-        return self._run_command("plugin:uninstall", id=id)
-
-    def plugins(self, filter: Optional[PluginType] = None, versions: bool = False, format: Optional[FormatStandard] = None) -> str:
+    def plugins(self, filter: Optional[Literal["core", "community"]] = None, versions: bool = False, format: Optional[Literal["json", "tsv", "csv"]] = "tsv") -> str:
         """
         List installed plugins.
         
@@ -632,7 +572,7 @@ class ObsidianClient:
         """
         return self._run_command("plugins", filter=filter, versions=versions, format=format)
 
-    def plugins_enabled(self, filter: Optional[PluginType] = None, versions: bool = False, format: Optional[FormatStandard] = None) -> str:
+    def plugins_enabled(self, filter: Optional[Literal["core", "community"]] = None, versions: bool = False, format: Optional[Literal["json", "tsv", "csv"]] = "tsv") -> str:
         """
         List enabled plugins.
         
@@ -653,70 +593,103 @@ class ObsidianClient:
         """
         return self._run_command("plugins:restrict", on=on, off=off)
 
-    # ==========================================
-    # Prepend
-    # ==========================================
-
-    def prepend(self, content: str, file: Optional[str] = None, path: Optional[str] = None, inline: bool = False) -> str:
+    def plugin(self, id: str) -> str:
         """
-        Prepend content to a file. Defaults to the active file if omitted.
+        Get plugin info.
         
         Args:
-            content: Content to prepend (required).
-            file: File name.
-            path: File path.
-            inline: Prepend without newline.
+            id: Plugin ID (required).
         """
-        return self._run_command("prepend", content=content, file=file, path=path, inline=inline)
+        return self._run_command("plugin", id=id)
+
+    def plugin_enable(self, id: str, filter: Optional[Literal["core", "community"]] = None) -> str:
+        """
+        Enable a plugin.
+        
+        Args:
+            id: Plugin ID (required).
+            filter: Plugin type.
+        """
+        return self._run_command("plugin:enable", id=id, filter=filter)
+
+    def plugin_disable(self, id: str, filter: Optional[Literal["core", "community"]] = None) -> str:
+        """
+        Disable a plugin.
+        
+        Args:
+            id: Plugin ID (required).
+            filter: Plugin type.
+        """
+        return self._run_command("plugin:disable", id=id, filter=filter)
+
+    def plugin_install(self, id: str, enable: bool = False) -> str:
+        """
+        Install a community plugin.
+        
+        Args:
+            id: Plugin ID (required).
+            enable: Enable after install.
+        """
+        return self._run_command("plugin:install", id=id, enable=enable)
+
+    def plugin_uninstall(self, id: str) -> str:
+        """
+        Uninstall a community plugin.
+        
+        Args:
+            id: Plugin ID (required).
+        """
+        return self._run_command("plugin:uninstall", id=id)
+
+    def plugin_reload(self, id: str) -> str:
+        """
+        Reload a plugin (for developers).
+        
+        Args:
+            id: Plugin ID (required).
+        """
+        return self._run_command("plugin:reload", id=id)
 
     # ==========================================
     # Properties
     # ==========================================
 
-    def properties(self, file: Optional[str] = None, path: Optional[str] = None, name: Optional[str] = None,
-                   total: bool = False, sort: Optional[str] = None, counts: bool = False, 
-                   format: Optional[Literal["yaml", "json", "tsv"]] = None, active: bool = False) -> str:
+    def aliases(self, file: Optional[str] = None, path: Optional[str] = None, 
+                total: bool = False, verbose: bool = False, active: bool = False) -> str:
         """
-        List properties in the vault. Defaults to the active file if omitted.
+        List aliases in the vault. Use active or file/path to show aliases for a specific file.
+        
+        Args:
+            file: File name.
+            path: File path.
+            total: Return alias count.
+            verbose: Include file paths.
+            active: Show aliases for active file.
+        """
+        return self._run_command("aliases", file=file, path=path, total=total, verbose=verbose, active=active)
+
+    def properties(self, file: Optional[str] = None, path: Optional[str] = None, name: Optional[str] = None,
+                   total: bool = False, sort: Optional[Literal["name", "count"]] = "name", counts: bool = False, 
+                   format: Optional[Literal["yaml", "json", "tsv"]] = "yaml", active: bool = False) -> str:
+        """
+        List properties in the vault. 
         
         Args:
             file: Show properties for file.
             path: Show properties for path.
             name: Get specific property count.
             total: Return property count.
-            sort: Sort by count (default: name).
+            sort: Specifies the sorting criterion. Sort by name or count (frequency) (default: name).
             counts: Include occurrence counts.
             format: Output format (default: yaml).
             active: Show properties for active file.
         """
         return self._run_command("properties", file=file, path=path, name=name, total=total, sort=sort, counts=counts, format=format, active=active)
 
-    def property_read(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Read a property value from a file. Defaults to the active file if omitted.
-        
-        Args:
-            name: Property name (required).
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("property:read", name=name, file=file, path=path)
-
-    def property_remove(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Remove a property from a file. Defaults to the active file if omitted.
-        
-        Args:
-            name: Property name (required).
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("property:remove", name=name, file=file, path=path)
-
-    def property_set(self, name: str, value: str, type: Optional[PropertyType] = None, 
+    def property_set(self, name: str, value: str, type: Optional[Literal["text", "list", "number", "checkbox", "date", "datetime"]] = None, 
                      file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Set a property on a file. Defaults to the active file if omitted.
+        Set a property on a file. Defaults to the active file/path if omitted.
         
         Args:
             name: Property name (required).
@@ -726,6 +699,28 @@ class ObsidianClient:
             path: File path.
         """
         return self._run_command("property:set", name=name, value=value, type=type, file=file, path=path)
+
+    def property_remove(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Remove a property from a file. Defaults to the active file/path if omitted.
+        
+        Args:
+            name: Property name (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("property:remove", name=name, file=file, path=path)
+
+    def property_read(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
+        """
+        Read a property value from a file. Defaults to the active file/path if omitted.
+        
+        Args:
+            name: Property name (required).
+            file: File name.
+            path: File path.
+        """
+        return self._run_command("property:read", name=name, file=file, path=path)
 
     # ==========================================
     # Publish
@@ -758,7 +753,7 @@ class ObsidianClient:
 
     def publish_add(self, file: Optional[str] = None, path: Optional[str] = None, changed: bool = False) -> str:
         """
-        Publish a file or all changed files. Defaults to the active file if omitted.
+        Publish a file or all changed files. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
@@ -769,7 +764,7 @@ class ObsidianClient:
 
     def publish_remove(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Unpublish a file. Defaults to the active file if omitted.
+        Unpublish a file. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
@@ -779,7 +774,7 @@ class ObsidianClient:
 
     def publish_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Open file on published site. Defaults to the active file if omitted.
+        Open file on published site. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
@@ -788,7 +783,7 @@ class ObsidianClient:
         return self._run_command("publish:open", file=file, path=path)
 
     # ==========================================
-    # Random Notes
+    # Random notes
     # ==========================================
 
     def random(self, folder: Optional[str] = None, newtab: bool = False) -> str:
@@ -811,63 +806,14 @@ class ObsidianClient:
         return self._run_command("random:read", folder=folder)
 
     # ==========================================
-    # Read
-    # ==========================================
-
-    def read(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Read file contents. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("read", file=file, path=path)
-
-    # ==========================================
-    # Recents
-    # ==========================================
-
-    def recents(self, total: bool = False) -> str:
-        """
-        List recently opened files.
-        
-        Args:
-            total: Return recent file count.
-        """
-        return self._run_command("recents", total=total)
-
-    # ==========================================
-    # Reload & Restart & Rename
-    # ==========================================
-
-    def reload(self) -> str:
-        """Reload the vault."""
-        return self._run_command("reload")
-
-    def rename(self, name: str, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Rename a file. Defaults to the active file if omitted.
-        
-        Args:
-            name: New file name (required).
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("rename", file=file, path=path, name=name)
-
-    def restart(self) -> str:
-        """Restart the app."""
-        return self._run_command("restart")
-
-    # ==========================================
     # Search
     # ==========================================
 
     def search(self, query: str, path: Optional[str] = None, limit: Optional[int] = None, 
-               total: bool = False, case: bool = False, format: Optional[SearchFormat] = None) -> str:
+               total: bool = False, case: bool = False, format: Optional[Literal["text", "json"]] = "text") -> str:
         """
-        Search vault for text.
+        Search vault for text. Returns matching file paths. 
+        Case insensitive by default.
         
         Args:
             query: Search query (required).
@@ -880,9 +826,10 @@ class ObsidianClient:
         return self._run_command("search", query=query, path=path, limit=limit, total=total, case=case, format=format)
 
     def search_context(self, query: str, path: Optional[str] = None, limit: Optional[int] = None, 
-                       case: bool = False, format: Optional[SearchFormat] = None) -> str:
+                       case: bool = False, format: Optional[Literal["text", "json"]] = "text") -> str:
         """
         Search with matching line context.
+        Case insensitive by default. Returns grep-style path:line: text output.
         
         Args:
             query: Search query (required).
@@ -903,36 +850,6 @@ class ObsidianClient:
         return self._run_command("search:open", query=query)
 
     # ==========================================
-    # Snippets
-    # ==========================================
-
-    def snippet_disable(self, name: str) -> str:
-        """
-        Disable a CSS snippet.
-        
-        Args:
-            name: Snippet name (required).
-        """
-        return self._run_command("snippet:disable", name=name)
-
-    def snippet_enable(self, name: str) -> str:
-        """
-        Enable a CSS snippet.
-        
-        Args:
-            name: Snippet name (required).
-        """
-        return self._run_command("snippet:enable", name=name)
-
-    def snippets(self) -> str:
-        """List installed CSS snippets."""
-        return self._run_command("snippets")
-
-    def snippets_enabled(self) -> str:
-        """List enabled CSS snippets."""
-        return self._run_command("snippets:enabled")
-
-    # ==========================================
     # Sync
     # ==========================================
 
@@ -946,18 +863,13 @@ class ObsidianClient:
         """
         return self._run_command("sync", on=on, off=off)
 
-    def sync_deleted(self, total: bool = False) -> str:
-        """
-        List deleted files in sync.
-        
-        Args:
-            total: Return deleted file count.
-        """
-        return self._run_command("sync:deleted", total=total)
+    def sync_status(self) -> str:
+        """Show sync status."""
+        return self._run_command("sync:status")
 
     def sync_history(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False) -> str:
         """
-        List sync version history for a file. Defaults to the active file if omitted.
+        List sync version history for a file. Defaults to the active file/path if omitted.
         
         Args:
             file: File name.
@@ -966,19 +878,9 @@ class ObsidianClient:
         """
         return self._run_command("sync:history", file=file, path=path, total=total)
 
-    def sync_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
-        """
-        Open sync history. Defaults to the active file if omitted.
-        
-        Args:
-            file: File name.
-            path: File path.
-        """
-        return self._run_command("sync:open", file=file, path=path)
-
     def sync_read(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Read a sync version. Defaults to the active file if omitted.
+        Read a sync version. Defaults to the active file/path if omitted.
         
         Args:
             version: Version number (required).
@@ -989,7 +891,7 @@ class ObsidianClient:
 
     def sync_restore(self, version: int, file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Restore a sync version. Defaults to the active file if omitted.
+        Restore a sync version. Defaults to the active file/path if omitted.
         
         Args:
             version: Version number (required).
@@ -998,54 +900,34 @@ class ObsidianClient:
         """
         return self._run_command("sync:restore", file=file, path=path, version=version)
 
-    def sync_status(self) -> str:
-        """Show sync status."""
-        return self._run_command("sync:status")
-
-    # ==========================================
-    # Tabs
-    # ==========================================
-
-    def tab_open(self, group: Optional[str] = None, file: Optional[str] = None, view: Optional[str] = None) -> str:
+    def sync_open(self, file: Optional[str] = None, path: Optional[str] = None) -> str:
         """
-        Open a new tab.
+        Open sync history. Defaults to the active file/path if omitted.
         
         Args:
-            group: Tab group ID.
-            file: File to open.
-            view: View type to open.
+            file: File name.
+            path: File path.
         """
-        return self._run_command("tab:open", group=group, file=file, view=view)
+        return self._run_command("sync:open", file=file, path=path)
 
-    def tabs(self, ids: bool = False) -> str:
+    def sync_deleted(self, total: bool = False) -> str:
         """
-        List open tabs.
+        List deleted files in sync.
         
         Args:
-            ids: Include tab IDs.
+            total: Return deleted file count.
         """
-        return self._run_command("tabs", ids=ids)
+        return self._run_command("sync:deleted", total=total)
 
     # ==========================================
     # Tags
     # ==========================================
 
-    def tag(self, name: str, total: bool = False, verbose: bool = False) -> str:
-        """
-        Get tag info.
-        
-        Args:
-            name: Tag name (required).
-            total: Return occurrence count.
-            verbose: Include file list and count.
-        """
-        return self._run_command("tag", name=name, total=total, verbose=verbose)
-
     def tags(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False, 
-             counts: bool = False, sort: Optional[str] = None, format: Optional[FormatStandard] = None, 
+             counts: bool = False, sort: Optional[str] = None, format: Optional[Literal["json", "tsv", "csv"]] = None, 
              active: bool = False) -> str:
         """
-        List tags in the vault. Defaults to the active file if omitted.
+        List tags in the vault. Use active or file/path to show tags for a specific file.
         
         Args:
             file: File name.
@@ -1058,9 +940,40 @@ class ObsidianClient:
         """
         return self._run_command("tags", file=file, path=path, total=total, counts=counts, sort=sort, format=format, active=active)
 
+    def tag(self, name: str, total: bool = False, verbose: bool = False) -> str:
+        """
+        Get tag info.
+        
+        Args:
+            name: Tag name (required).
+            total: Return occurrence count.
+            verbose: Include file list and count.
+        """
+        return self._run_command("tag", name=name, total=total, verbose=verbose)
+
     # ==========================================
     # Tasks
     # ==========================================
+
+    def tasks(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False,
+              done: bool = False, todo: bool = False, status: Optional[str] = None, verbose: bool = False,
+              format: Optional[Literal["text", "json", "tsv", "csv"]] = "text", active: bool = False, daily: bool = False) -> str:
+        """
+        List tasks in the vault. Use active or file/path to show tasks for a specific file.
+        
+        Args:
+            file: Filter by file name.
+            path: Filter by file path.
+            total: Return task count.
+            done: Show completed tasks.
+            todo: Show incomplete tasks.
+            status: Filter by status character. (status character = char inside of brackets, e.g. [x] -> status = x)
+            verbose: Group by file with line numbers.
+            format: Output format (default: text).
+            active: Show tasks for active file.
+            daily: Show tasks from daily note.
+        """
+        return self._run_command("tasks", file=file, path=path, total=total, done=done, todo=todo, status=status, verbose=verbose, format=format, active=active, daily=daily)
 
     def task(self, ref: Optional[str] = None, file: Optional[str] = None, path: Optional[str] = None,
              line: Optional[int] = None, toggle: bool = False, done: bool = False, todo: bool = False,
@@ -1077,53 +990,13 @@ class ObsidianClient:
             done: Mark as done.
             todo: Mark as todo.
             daily: Use daily note.
-            status: Set status character.
+            status: Set status character. (status character = char inside of brackets, e.g. [x] -> status = x)
         """
         return self._run_command("task", ref=ref, file=file, path=path, line=line, toggle=toggle, done=done, todo=todo, daily=daily, status=status)
-
-    def tasks(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False,
-              done: bool = False, todo: bool = False, status: Optional[str] = None, verbose: bool = False,
-              format: Optional[FormatStandard] = None, active: bool = False, daily: bool = False) -> str:
-        """
-        List tasks in the vault. Defaults to the active file if omitted.
-        
-        Args:
-            file: Filter by file name.
-            path: Filter by file path.
-            total: Return task count.
-            done: Show completed tasks.
-            todo: Show incomplete tasks.
-            status: Filter by status character.
-            verbose: Group by file with line numbers.
-            format: Output format (default: text).
-            active: Show tasks for active file.
-            daily: Show tasks from daily note.
-        """
-        return self._run_command("tasks", file=file, path=path, total=total, done=done, todo=todo, status=status, verbose=verbose, format=format, active=active, daily=daily)
 
     # ==========================================
     # Templates
     # ==========================================
-
-    def template_insert(self, name: str) -> str:
-        """
-        Insert template into active file.
-        
-        Args:
-            name: Template name (required).
-        """
-        return self._run_command("template:insert", name=name)
-
-    def template_read(self, name: str, resolve: bool = False, title: Optional[str] = None) -> str:
-        """
-        Read template content.
-        
-        Args:
-            name: Template name (required).
-            resolve: Resolve template variables.
-            title: Title for variable resolution.
-        """
-        return self._run_command("template:read", name=name, resolve=resolve, title=title)
 
     def templates(self, total: bool = False) -> str:
         """
@@ -1134,9 +1007,38 @@ class ObsidianClient:
         """
         return self._run_command("templates", total=total)
 
+    def template_read(self, name: str, resolve: bool = False, title: Optional[str] = None) -> str:
+        """
+        Read template content.
+        
+        Args:
+            name: Template name (required).
+            resolve: Resolve template variables. (resolve option processes {{date}}, {{time}}, {{title}} variables)
+            title: Title for variable resolution.
+        """
+        return self._run_command("template:read", name=name, resolve=resolve, title=title)
+
+    def template_insert(self, name: str) -> str:
+        """
+        Insert template into active file.
+        
+        Args:
+            name: Template name (required).
+        """
+        return self._run_command("template:insert", name=name)
+
     # ==========================================
-    # Themes
+    # Themes and snippets
     # ==========================================
+
+    def themes(self, versions: bool = False) -> str:
+        """
+        List installed themes.
+        
+        Args:
+            versions: Include version numbers.
+        """
+        return self._run_command("themes", versions=versions)
 
     def theme(self, name: Optional[str] = None) -> str:
         """
@@ -1146,6 +1048,15 @@ class ObsidianClient:
             name: Theme name for details.
         """
         return self._run_command("theme", name=name)
+
+    def theme_set(self, name: str) -> str:
+        """
+        Set active theme.
+        
+        Args:
+            name: Theme name (empty for default) (required).
+        """
+        return self._run_command("theme:set", name=name)
 
     def theme_install(self, name: str, enable: bool = False) -> str:
         """
@@ -1157,15 +1068,6 @@ class ObsidianClient:
         """
         return self._run_command("theme:install", name=name, enable=enable)
 
-    def theme_set(self, name: str) -> str:
-        """
-        Set active theme.
-        
-        Args:
-            name: Theme name (empty for default) (required).
-        """
-        return self._run_command("theme:set", name=name)
-
     def theme_uninstall(self, name: str) -> str:
         """
         Uninstall a theme.
@@ -1175,21 +1077,38 @@ class ObsidianClient:
         """
         return self._run_command("theme:uninstall", name=name)
 
-    def themes(self, versions: bool = False) -> str:
+    def snippets(self) -> str:
+        """List installed CSS snippets."""
+        return self._run_command("snippets")
+
+    def snippets_enabled(self) -> str:
+        """List enabled CSS snippets."""
+        return self._run_command("snippets:enabled")
+
+    def snippet_enable(self, name: str) -> str:
         """
-        List installed themes.
+        Enable a CSS snippet.
         
         Args:
-            versions: Include version numbers.
+            name: Snippet name (required).
         """
-        return self._run_command("themes", versions=versions)
+        return self._run_command("snippet:enable", name=name)
+
+    def snippet_disable(self, name: str) -> str:
+        """
+        Disable a CSS snippet.
+        
+        Args:
+            name: Snippet name (required).
+        """
+        return self._run_command("snippet:disable", name=name)
 
     # ==========================================
-    # Unique
+    # Unique notes
     # ==========================================
 
     def unique(self, name: Optional[str] = None, content: Optional[str] = None, 
-               paneType: Optional[PaneType] = None, open: bool = False) -> str:
+               paneType: Optional[Literal["tab", "split", "window"]] = None, open: bool = False) -> str:
         """
         Create unique note.
         
@@ -1202,26 +1121,10 @@ class ObsidianClient:
         return self._run_command("unique", name=name, content=content, paneType=paneType, open=open)
 
     # ==========================================
-    # Unresolved
+    # Vault
     # ==========================================
 
-    def unresolved(self, total: bool = False, counts: bool = False, verbose: bool = False, format: Optional[FormatStandard] = None) -> str:
-        """
-        List unresolved links in vault.
-        
-        Args:
-            total: Return unresolved link count.
-            counts: Include link counts.
-            verbose: Include source files.
-            format: Output format (default: tsv).
-        """
-        return self._run_command("unresolved", total=total, counts=counts, verbose=verbose, format=format)
-
-    # ==========================================
-    # Vault & Version
-    # ==========================================
-
-    def vault_info(self, info: Optional[VaultInfo] = None) -> str:
+    def vault_info(self, info: Optional[Literal["name", "path", "files", "folders", "size"]] = None) -> str:
         """
         Show vault info.
         
@@ -1240,12 +1143,10 @@ class ObsidianClient:
         """
         return self._run_command("vaults", total=total, verbose=verbose)
 
-    def version(self) -> str:
-        """Show Obsidian version."""
-        return self._run_command("version")
+    # NOTE: vault:open wasn't requested
 
     # ==========================================
-    # Web & Wordcount
+    # Web viewer
     # ==========================================
 
     def web(self, url: str, newtab: bool = False) -> str:
@@ -1258,9 +1159,13 @@ class ObsidianClient:
         """
         return self._run_command("web", url=url, newtab=newtab)
 
+    # ==========================================
+    # Wordcount
+    # ==========================================
+
     def wordcount(self, file: Optional[str] = None, path: Optional[str] = None, words: bool = False, characters: bool = False) -> str:
         """
-        Count words and characters. Defaults to the active file if omitted.
+        Count words and characters. Defaults to the active file/path if omitted
         
         Args:
             file: File name.
@@ -1271,10 +1176,10 @@ class ObsidianClient:
         return self._run_command("wordcount", file=file, path=path, words=words, characters=characters)
 
     # ==========================================
-    # Workspace & Workspaces
+    # Workspace
     # ==========================================
 
-    def workspace_info(self, ids: bool = False) -> str:
+    def workspace(self, ids: bool = False) -> str:
         """
         Show workspace tree.
         
@@ -1283,23 +1188,14 @@ class ObsidianClient:
         """
         return self._run_command("workspace", ids=ids)
 
-    def workspace_delete(self, name: str) -> str:
+    def workspaces(self, total: bool = False) -> str:
         """
-        Delete a saved workspace.
+        List saved workspaces.
         
         Args:
-            name: Workspace name (required).
+            total: Return workspace count.
         """
-        return self._run_command("workspace:delete", name=name)
-
-    def workspace_load(self, name: str) -> str:
-        """
-        Load a saved workspace.
-        
-        Args:
-            name: Workspace name (required).
-        """
-        return self._run_command("workspace:load", name=name)
+        return self._run_command("workspaces", total=total)
 
     def workspace_save(self, name: Optional[str] = None) -> str:
         """
@@ -1310,11 +1206,49 @@ class ObsidianClient:
         """
         return self._run_command("workspace:save", name=name)
 
-    def workspaces(self, total: bool = False) -> str:
+    def workspace_load(self, name: str) -> str:
         """
-        List saved workspaces.
+        Load a saved workspace.
         
         Args:
-            total: Return workspace count.
+            name: Workspace name (required).
         """
-        return self._run_command("workspaces", total=total)
+        return self._run_command("workspace:load", name=name)
+
+    def workspace_delete(self, name: str) -> str:
+        """
+        Delete a saved workspace.
+        
+        Args:
+            name: Workspace name (required).
+        """
+        return self._run_command("workspace:delete", name=name)
+
+    def tabs(self, ids: bool = False) -> str:
+        """
+        List open tabs.
+        
+        Args:
+            ids: Include tab IDs.
+        """
+        return self._run_command("tabs", ids=ids)
+
+    def tab_open(self, group: Optional[str] = None, file: Optional[str] = None, view: Optional[str] = None) -> str:
+        """
+        Open a new tab.
+        
+        Args:
+            group: Tab group ID.
+            file: File to open.
+            view: View type to open.
+        """
+        return self._run_command("tab:open", group=group, file=file, view=view)
+
+    def recents(self, total: bool = False) -> str:
+        """
+        List recently opened files.
+        
+        Args:
+            total: Return recent file count.
+        """
+        return self._run_command("recents", total=total)
