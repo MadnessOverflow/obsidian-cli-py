@@ -241,3 +241,332 @@ class ObsidianClient:
     def command(self, id: str, **kwargs: Any) -> str:
         """Run a specific Obsidian command by ID."""
         return self._run_command("command", id=id, **kwargs)
+
+    # ==========================================
+    # Aliases, Links, and Outline
+    # ==========================================
+
+    def aliases(self, **kwargs: Any) -> str:
+        """List aliases in the vault."""
+        return self._run_command("aliases", **kwargs)
+
+    def backlinks(self, **kwargs: Any) -> str:
+        """List backlinks to a file."""
+        return self._run_command("backlinks", **kwargs)
+
+    def deadends(self, **kwargs: Any) -> str:
+        """List files with no outgoing links."""
+        return self._run_command("deadends", **kwargs)
+
+    def links(self, **kwargs: Any) -> str:
+        """List outgoing links from a file."""
+        return self._run_command("links", **kwargs)
+
+    def orphans(self, **kwargs: Any) -> str:
+        """List files with no incoming links."""
+        return self._run_command("orphans", **kwargs)
+
+    def outline(self, **kwargs: Any) -> str:
+        """Show headings for the current file."""
+        return self._run_command("outline", **kwargs)
+
+    def unresolved(self, **kwargs: Any) -> str:
+        """List unresolved links in vault."""
+        return self._run_command("unresolved", **kwargs)
+
+    # ==========================================
+    # Bases
+    # ==========================================
+
+    def base_create(self, **kwargs: Any) -> str:
+        """Create a new item in a base."""
+        return self._run_command("base:create", **kwargs)
+
+    def base_query(self, **kwargs: Any) -> str:
+        """Query a base and return results."""
+        return self._run_command("base:query", **kwargs)
+
+    def base_views(self, **kwargs: Any) -> str:
+        """List views in the current base file."""
+        return self._run_command("base:views", **kwargs)
+
+    def bases(self, **kwargs: Any) -> str:
+        """List all base files in vault."""
+        return self._run_command("bases", **kwargs)
+
+    # ==========================================
+    # Daily Notes and Random Notes
+    # ==========================================
+
+    def daily_path(self, **kwargs: Any) -> str:
+        """Get daily note path."""
+        return self._run_command("daily:path", **kwargs)
+
+    def random(self, **kwargs: Any) -> str:
+        """Open a random note."""
+        return self._run_command("random", **kwargs)
+
+    def random_read(self, **kwargs: Any) -> str:
+        """Read a random note."""
+        return self._run_command("random:read", **kwargs)
+
+    # ==========================================
+    # Files, Folders, and History
+    # ==========================================
+
+    def file_info(self, **kwargs: Any) -> str:
+        """Show file info."""
+        return self._run_command("file", **kwargs)
+
+    def files(self, **kwargs: Any) -> str:
+        """List files in the vault."""
+        return self._run_command("files", **kwargs)
+
+    def folder(self, **kwargs: Any) -> str:
+        """Show folder info."""
+        return self._run_command("folder", **kwargs)
+
+    def folders(self, **kwargs: Any) -> str:
+        """List folders in the vault."""
+        return self._run_command("folders", **kwargs)
+
+    def history(self, **kwargs: Any) -> str:
+        """List file history versions."""
+        return self._run_command("history", **kwargs)
+
+    def history_list(self, **kwargs: Any) -> str:
+        """List files with history."""
+        return self._run_command("history:list", **kwargs)
+
+    def history_open(self, **kwargs: Any) -> str:
+        """Open file recovery."""
+        return self._run_command("history:open", **kwargs)
+
+    def history_read(self, **kwargs: Any) -> str:
+        """Read a file history version."""
+        return self._run_command("history:read", **kwargs)
+
+    def history_restore(self, **kwargs: Any) -> str:
+        """Restore a file history version."""
+        return self._run_command("history:restore", **kwargs)
+
+    def diff(self, **kwargs: Any) -> str:
+        """List or diff local/sync versions."""
+        return self._run_command("diff", **kwargs)
+
+    def recents(self, **kwargs: Any) -> str:
+        """List recently opened files."""
+        return self._run_command("recents", **kwargs)
+
+    # ==========================================
+    # Plugins, Themes, and Snippets
+    # ==========================================
+
+    def plugin(self, **kwargs: Any) -> str:
+        """Get plugin info."""
+        return self._run_command("plugin", **kwargs)
+
+    def plugin_disable(self, **kwargs: Any) -> str:
+        """Disable a plugin."""
+        return self._run_command("plugin:disable", **kwargs)
+
+    def plugin_enable(self, **kwargs: Any) -> str:
+        """Enable a plugin."""
+        return self._run_command("plugin:enable", **kwargs)
+
+    def plugin_install(self, **kwargs: Any) -> str:
+        """Install a community plugin."""
+        return self._run_command("plugin:install", **kwargs)
+
+    def plugin_reload(self, **kwargs: Any) -> str:
+        """Reload a plugin."""
+        return self._run_command("plugin:reload", **kwargs)
+
+    def plugin_uninstall(self, **kwargs: Any) -> str:
+        """Uninstall a community plugin."""
+        return self._run_command("plugin:uninstall", **kwargs)
+
+    def plugins(self, **kwargs: Any) -> str:
+        """List installed plugins."""
+        return self._run_command("plugins", **kwargs)
+
+    def plugins_enabled(self, **kwargs: Any) -> str:
+        """List enabled plugins."""
+        return self._run_command("plugins:enabled", **kwargs)
+
+    def plugins_restrict(self, **kwargs: Any) -> str:
+        """Toggle or check restricted mode."""
+        return self._run_command("plugins:restrict", **kwargs)
+
+    def theme(self, **kwargs: Any) -> str:
+        """Show active theme or get info."""
+        return self._run_command("theme", **kwargs)
+
+    def theme_install(self, **kwargs: Any) -> str:
+        """Install a community theme."""
+        return self._run_command("theme:install", **kwargs)
+
+    def theme_set(self, **kwargs: Any) -> str:
+        """Set active theme."""
+        return self._run_command("theme:set", **kwargs)
+
+    def theme_uninstall(self, **kwargs: Any) -> str:
+        """Uninstall a theme."""
+        return self._run_command("theme:uninstall", **kwargs)
+
+    def themes(self, **kwargs: Any) -> str:
+        """List installed themes."""
+        return self._run_command("themes", **kwargs)
+
+    def snippet_disable(self, **kwargs: Any) -> str:
+        """Disable a CSS snippet."""
+        return self._run_command("snippet:disable", **kwargs)
+
+    def snippet_enable(self, **kwargs: Any) -> str:
+        """Enable a CSS snippet."""
+        return self._run_command("snippet:enable", **kwargs)
+
+    def snippets(self, **kwargs: Any) -> str:
+        """List installed CSS snippets."""
+        return self._run_command("snippets", **kwargs)
+
+    def snippets_enabled(self, **kwargs: Any) -> str:
+        """List enabled CSS snippets."""
+        return self._run_command("snippets:enabled", **kwargs)
+
+    # ==========================================
+    # QuickAdd, Tasks, and Templates
+    # ==========================================
+
+    def quickadd(self, **kwargs: Any) -> str:
+        """Run a QuickAdd choice."""
+        return self._run_command("quickadd", **kwargs)
+
+    def quickadd_check(self, **kwargs: Any) -> str:
+        """Check missing inputs for a QuickAdd choice."""
+        return self._run_command("quickadd:check", **kwargs)
+
+    def quickadd_list(self, **kwargs: Any) -> str:
+        """List QuickAdd choices."""
+        return self._run_command("quickadd:list", **kwargs)
+
+    def quickadd_run(self, **kwargs: Any) -> str:
+        """Run a QuickAdd choice."""
+        return self._run_command("quickadd:run", **kwargs)
+
+    def task(self, **kwargs: Any) -> str:
+        """Show or update a task."""
+        return self._run_command("task", **kwargs)
+
+    def tasks(self, **kwargs: Any) -> str:
+        """List tasks in the vault."""
+        return self._run_command("tasks", **kwargs)
+
+    def template_insert(self, **kwargs: Any) -> str:
+        """Insert template into active file."""
+        return self._run_command("template:insert", **kwargs)
+
+    def template_read(self, **kwargs: Any) -> str:
+        """Read template content."""
+        return self._run_command("template:read", **kwargs)
+
+    def templates(self, **kwargs: Any) -> str:
+        """List templates."""
+        return self._run_command("templates", **kwargs)
+
+    # ==========================================
+    # Search Extensions
+    # ==========================================
+
+    def search_context(self, **kwargs: Any) -> str:
+        """Search with matching line context."""
+        return self._run_command("search:context", **kwargs)
+
+    def search_open(self, **kwargs: Any) -> str:
+        """Open search view."""
+        return self._run_command("search:open", **kwargs)
+
+    # ==========================================
+    # Sync
+    # ==========================================
+
+    def sync(self, **kwargs: Any) -> str:
+        """Pause or resume sync."""
+        return self._run_command("sync", **kwargs)
+
+    def sync_deleted(self, **kwargs: Any) -> str:
+        """List deleted files in sync."""
+        return self._run_command("sync:deleted", **kwargs)
+
+    def sync_history(self, **kwargs: Any) -> str:
+        """List sync version history for a file."""
+        return self._run_command("sync:history", **kwargs)
+
+    def sync_open(self, **kwargs: Any) -> str:
+        """Open sync history."""
+        return self._run_command("sync:open", **kwargs)
+
+    def sync_read(self, **kwargs: Any) -> str:
+        """Read a sync version."""
+        return self._run_command("sync:read", **kwargs)
+
+    def sync_restore(self, **kwargs: Any) -> str:
+        """Restore a sync version."""
+        return self._run_command("sync:restore", **kwargs)
+
+    def sync_status(self, **kwargs: Any) -> str:
+        """Show sync status."""
+        return self._run_command("sync:status", **kwargs)
+
+    # ==========================================
+    # Vault, Workspace Extensions, System
+    # ==========================================
+
+    def vault_info(self, **kwargs: Any) -> str:
+        """Show vault info (renamed from vault to not conflict with self.vault parameter)."""
+        return self._run_command("vault", **kwargs)
+
+    def vaults(self, **kwargs: Any) -> str:
+        """List known vaults."""
+        return self._run_command("vaults", **kwargs)
+
+    def workspace_info(self, **kwargs: Any) -> str:
+        """Show workspace tree."""
+        return self._run_command("workspace", **kwargs)
+
+    def workspace_delete(self, **kwargs: Any) -> str:
+        """Delete a saved workspace."""
+        return self._run_command("workspace:delete", **kwargs)
+
+    def workspaces(self, **kwargs: Any) -> str:
+        """List saved workspaces."""
+        return self._run_command("workspaces", **kwargs)
+
+    def tab_open(self, **kwargs: Any) -> str:
+        """Open a new tab."""
+        return self._run_command("tab:open", **kwargs)
+
+    def hotkey(self, **kwargs: Any) -> str:
+        """Get hotkey for a command."""
+        return self._run_command("hotkey", **kwargs)
+
+    def hotkeys(self, **kwargs: Any) -> str:
+        """List hotkeys."""
+        return self._run_command("hotkeys", **kwargs)
+
+    def reload(self, **kwargs: Any) -> str:
+        """Reload the vault."""
+        return self._run_command("reload", **kwargs)
+
+    def restart(self, **kwargs: Any) -> str:
+        """Restart the app."""
+        return self._run_command("restart", **kwargs)
+
+    def web(self, **kwargs: Any) -> str:
+        """Open URL in web viewer."""
+        return self._run_command("web", **kwargs)
+
+    def wordcount(self, **kwargs: Any) -> str:
+        """Count words and characters."""
+        return self._run_command("wordcount", **kwargs)
+
