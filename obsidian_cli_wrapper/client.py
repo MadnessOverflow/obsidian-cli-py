@@ -67,8 +67,6 @@ class ObsidianClient:
                 else:
                     cmd_list.append(f"{k}={val_str}")
 
-        cmd_string = " ".join(cmd_list)
-
         if is_windows:
             cmd_to_run = " ".join(cmd_list)
             use_shell = True
@@ -948,8 +946,8 @@ class ObsidianClient:
     # ==========================================
 
     def tags(self, file: Optional[str] = None, path: Optional[str] = None, total: bool = False, 
-             counts: bool = False, sort: Optional[str] = None, format: Optional[Literal["json", "tsv", "csv"]] = None, 
-             active: bool = False) -> str:
+             counts: bool = False, sort: Optional[Literal["name", "count"]] = "name", 
+             format: Optional[Literal["json", "tsv", "csv"]] = "tsv", active: bool = False) -> str:
         """
         List tags in the vault. Use active or file/path to show tags for a specific file.
         
@@ -958,7 +956,7 @@ class ObsidianClient:
             path: File path.
             total: Return tag count.
             counts: Include tag counts.
-            sort: Sort by count (default: name).
+            sort: Specifies the sorting criterion. Sort by name or count (frequency) (default: name).
             format: Output format (default: tsv).
             active: Show tags for active file.
         """

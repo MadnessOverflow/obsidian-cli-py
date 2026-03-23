@@ -1,10 +1,12 @@
 [tool.poetry]
-name = "obsidian-cli-py"
-version = "0.1.1"
-description = "A Python wrapper for the Obsidian CLI"
-authors = ["Author <author@example.com>"]
+name = "wrapper-for-obsidian-cli"
+version = "0.1.0"
+description = "An unofficial, easy-to-use python bridge/wrapper for the new Obsidian CLI."
+authors = ["MadnessOverflow"]
 readme = "README.md"
-packages = [{include = "obsidian_cli"}]
+repository = "https://github.com/MadnessOverflow/py-wrapper-for-obsidian-cli"
+keywords = ["obsidian", "cli", "wrapper", "notes"]
+packages = [{include = "obsidian_cli_wrapper"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"

@@ -1,10 +1,10 @@
-# obsidian-cli-py
+# py-wrapper-for-obsidian-cli
 
-[![PyPI version](https://img.shields.io/pypi/v/obsidian-cli-py.svg)](https://pypi.org/project/obsidian-cli-py/)
-[![Python versions](https://img.shields.io/pypi/pyversions/obsidian-cli-py.svg)](https://pypi.org/project/obsidian-cli-py/)
+[![PyPI version](https://img.shields.io/pypi/v/wrapper-for-obsidian-cli.svg)](https://pypi.org/project/wrapper-for-obsidian-cli/)
+[![Python versions](https://img.shields.io/pypi/pyversions/wrapper-for-obsidian-cli.svg)](https://pypi.org/project/wrapper-for-obsidian-cli/)
 [![Obsidian CLI Docs](https://img.shields.io/badge/docs-Obsidian_CLI-blue.svg)](https://help.obsidian.md/cli)
 
-**obsidian-cli-py** is an unofficial, easy-to-use Python bridge for the new [Obsidian CLI](https://help.obsidian.md/cli).
+**py-wrapper-for-obsidian-cli** is an unofficial, easy-to-use Python bridge for the new [Obsidian CLI](https://help.obsidian.md/cli).
 
 It allows you to programmatically interact with your Obsidian vaults, create notes, search your knowledge base, and much more, straight from Python!
 
@@ -18,7 +18,7 @@ It allows you to programmatically interact with your Obsidian vaults, create not
 ## Installation
 
 ```bash
-pip install obsidian-cli-py
+pip install wrapper-for-obsidian-cli
 ```
 
 > **Note**: This library requires the official [Obsidian CLI](https://help.obsidian.md/cli) to be installed and enabled in your Obsidian app (requires Obsidian v1.12.4+). Check the official docs for troubleshooting and setup instructions.
@@ -32,7 +32,7 @@ Because **every function in this library corresponds 1:1 to the official CLI com
 ## Quick Start
 
 ```python
-from obsidian_cli import ObsidianClient
+from obsidian_cli_wrapper import ObsidianClient
 
 # Initialize the client. Optionally specify a vault name.
 client = ObsidianClient(vault="My Vault")
@@ -51,7 +51,7 @@ print(results)
 
 ## Available Commands
 
-The wrapper aims to support all Obsidian CLI commands except developer commands.
+The wrapper aims to support all [Obsidian CLI](https://help.obsidian.md/cli) commands except developer commands.
 
 ### Additional Commands
 

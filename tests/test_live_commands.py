@@ -1,5 +1,5 @@
 import pytest
-from obsidian_cli import ObsidianClient
+from obsidian_cli_wrapper import ObsidianClient
 import json
 import uuid
 

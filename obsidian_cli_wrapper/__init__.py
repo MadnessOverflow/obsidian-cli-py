@@ -1,7 +1,7 @@
 """
-obsidian-cli-py
+wrapper-for-obsidian-cli
 
-A Python wrapper for the Obsidian CLI.
+An unofficial, easy-to-use python bridge/wrapper for the new Obsidian CLI.
 """
 
 from .client import ObsidianClient

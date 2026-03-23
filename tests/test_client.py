@@ -1,6 +1,6 @@
 import pytest
 import subprocess
-from obsidian_cli import ObsidianClient, ObsidianCLINotFoundError, ObsidianCLICommandError
+from obsidian_cli_wrapper import ObsidianClient, ObsidianCLINotFoundError, ObsidianCLICommandError
 
 
 @pytest.fixture
